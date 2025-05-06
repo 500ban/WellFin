@@ -1,0 +1,19 @@
+version: '3.8'                    # Docker Composeのバージョン
+
+services:
+  flutter:                        # サービス名
+    build:                        # ビルド設定
+      context: .                  # ビルドコンテキスト（カレントディレクトリ）
+      dockerfile: .devcontainer/Dockerfile  # 使用するDockerfileのパス
+    user: flutter                 # コンテナ内で使用するユーザー
+    working_dir: /workspace       # コンテナ内の作業ディレクトリ
+    stdin_open: true             # 標準入力を開いたままにする（対話的な操作を可能に）
+    tty: true                    # 疑似ターミナルを割り当てる（対話的なシェルセッションを維持）
+    environment:                  # 環境変数の設定
+      - DEBIAN_FRONTEND=noninteractive  # 対話的なプロンプトを無効化
+    volumes:                      # ボリュームのマウント設定
+      - .:/workspace             # カレントディレクトリをコンテナの/workspaceにマウント
+      - flutter-sdk:/usr/local/flutter  # Flutter SDKを永続化するためのボリューム
+
+volumes:
+  flutter-sdk:                    # 名前付きボリュームの定義（Flutter SDKの永続化用） 

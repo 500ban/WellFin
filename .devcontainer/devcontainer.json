@@ -1,0 +1,95 @@
+{
+    "name": "Flutter Development",
+    "dockerComposeFile": [
+        "../docker-compose.yml",
+        "docker-compose.override.yml"
+    ],
+    "service": "flutter",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Flutter開発のための公式拡張
+                "Dart-Code.flutter",
+                // Dart言語サポート
+                "Dart-Code.dart-code",
+                // Dockerサポート
+                "ms-azuretools.vscode-docker",
+                // コードフォーマッター（コード整形）
+                "esbenp.prettier-vscode",
+                // JavaScript/TypeScript用のLintツール
+                "dbaeumer.vscode-eslint",
+                // Git履歴や差分の可視化
+                "eamodio.gitlens",
+                // 括弧の対応関係を色分け
+                "coenraads.bracket-pair-colorizer-2",
+                // エラーや警告をエディタ上で強調表示
+                "usernamehw.errorlens",
+                // Flutterの多言語対応支援
+                "localizely.flutter-intl",
+                // TODO可視化用
+                "gruntfuggly.todo-tree"
+            ],
+            "settings": {
+                "editor.tabSize": 2,
+                "editor.formatOnSave": true,
+                "editor.rulers": [80, 120],
+                "editor.guides.bracketPairs": true,
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.eslint": "explicit",
+                    "source.fixAll.stylelint": "always"
+                },
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true,
+                "[dart]": {
+                    "editor.defaultFormatter": null,
+                    "editor.formatOnSave": true,
+                    "editor.rulers": [80]
+                },
+                "[javascript]": {
+                    "editor.defaultFormatter": "vscode.typescript-language-features"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "vscode.typescript-language-features"
+                },
+                "errorLens.enabled": true,
+                "errorLens.messageEnabled": true,
+                "errorLens.statusBarMessageEnabled": true,
+                "gitlens.codeLens.enabled": true,
+                "gitlens.hovers.enabled": true,
+                "dart.lineLength": 80,
+                "dart.previewFlutterUiGuides": true,
+                "dart.previewFlutterUiGuidesCustomTracking": true,
+                // TODOツリーの設定
+                "todo-tree.general.tags": [
+                    "TODO",
+                    "FIXME",
+                    "NOTE"
+                ],
+                "todo-tree.highlights.customHighlight": {
+                    "TODO": {
+                        "icon": "check-circle-fill",
+                        "foreground": "#00bfff",
+                        "iconColour": "#00bfff"
+                    },
+                    "FIXME": {
+                        "icon": "flame",
+                        "foreground": "#f16940",
+                        "iconColour": "#F15B40"
+                    },
+                    "NOTE": {
+                        "icon": "paintbrush",
+                        "foreground": "#B2D235",
+                        "iconColour": "#B2D235"
+                    }
+                },
+                "todo-tree.tree.showScanModeButton": true,
+                "todo-tree.tree.showCounts": true,
+                "todo-tree.tree.sortOrder": "file"
+            }
+        }
+    },
+    "forwardPorts": [3000],
+    "postCreateCommand": "flutter doctor",
+    "remoteUser": "flutter"
+} 
