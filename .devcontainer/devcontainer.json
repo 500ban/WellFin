@@ -1,34 +1,23 @@
 {
     "name": "Flutter Development",
-    "dockerComposeFile": [
-        "../docker-compose.yml",
-        "docker-compose.override.yml"
-    ],
+    "build": {
+        "dockerfile": "./Dockerfile"
+    },
     "service": "flutter",
-    "workspaceFolder": "/workspace",
     "customizations": {
         "vscode": {
             "extensions": [
-                // Flutter開発のための公式拡張
                 "Dart-Code.flutter",
-                // Dart言語サポート
                 "Dart-Code.dart-code",
-                // Dockerサポート
                 "ms-azuretools.vscode-docker",
-                // コードフォーマッター（コード整形）
                 "esbenp.prettier-vscode",
-                // JavaScript/TypeScript用のLintツール
                 "dbaeumer.vscode-eslint",
-                // Git履歴や差分の可視化
                 "eamodio.gitlens",
-                // 括弧の対応関係を色分け
                 "coenraads.bracket-pair-colorizer-2",
-                // エラーや警告をエディタ上で強調表示
                 "usernamehw.errorlens",
-                // Flutterの多言語対応支援
                 "localizely.flutter-intl",
-                // TODO可視化用
-                "gruntfuggly.todo-tree"
+                "gruntfuggly.todo-tree",
+                "DiemasMichiels.emulate"
             ],
             "settings": {
                 "editor.tabSize": 2,
@@ -89,7 +78,13 @@
             }
         }
     },
-    "forwardPorts": [3000],
+    "forwardPorts": [3000, 9100, 5037],
     "postCreateCommand": "flutter doctor",
-    "remoteUser": "flutter"
-} 
+    "remoteUser": "flutter",
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    ],
+    "runArgs": [
+        "--privileged"
+    ]
+}

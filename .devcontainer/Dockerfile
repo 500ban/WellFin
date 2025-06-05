@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
   pkg-config \
   gnupg \
   libgtk-3-dev \
+  android-tools-adb \
   && rm -rf /var/lib/apt/lists/*
 
 # Google Chromeのリポジトリを追加
@@ -55,6 +56,11 @@ RUN if [ ! -d "$FLUTTER_HOME" ]; then \
 RUN useradd -ms /bin/bash flutter
 RUN chown -R flutter:flutter $FLUTTER_HOME
 RUN chown -R flutter:flutter $ANDROID_HOME
+
+# adbの設定
+RUN mkdir -p /home/flutter/.android
+RUN echo "export ANDROID_HOME=$ANDROID_HOME" >> /home/flutter/.bashrc
+RUN echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> /home/flutter/.bashrc
 
 USER flutter
 WORKDIR /workspace
