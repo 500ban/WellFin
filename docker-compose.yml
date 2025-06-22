@@ -1,0 +1,18 @@
+version: '3.8'                    # Docker Composeのバージョン
+
+services:
+  flutter:
+    build:
+      context: .                               # ビルドコンテキスト（カレントディレクトリ）
+    user: flutter                              # コンテナ内で使用するユーザー
+    working_dir: /workspace                    # コンテナ内の作業ディレクトリ
+    stdin_open: true                           # 標準入力を開いたままにする（対話的な操作を可能に）
+    tty: true                                  # 疑似ターミナルを割り当てる（対話的なシェルセッションを維持）
+    volumes:
+      - .:/workspace                           # カレントディレクトリをコンテナの/workspaceにマウントn
+      - flutter-sdk:/usr/local/flutter         # Flutter SDKを永続化するためのボリューム
+    
+
+volumes:
+  flutter-sdk:
+    driver: local

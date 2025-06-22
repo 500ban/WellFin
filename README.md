@@ -10,23 +10,29 @@
 
 ### 必要なツール
 
-- Flutter SDK
-- Android Studio / VS Code
+- Docker
+- VS Code / Cursor
 - Git
+- Android Studio
 
 ### セットアップ手順
 
-1. Flutter SDK のインストール
+1. コンテナの起動
+
+```bash
+docker compose up
+```
+
 2. 依存関係のインストール
 
 ```bash
-flutter pub get
+docker compose exec flutter bash -c "cd /workspace/wellfin && flutter pub get"
 ```
 
 3. アプリケーションの実行
 
 ```bash
-flutter run
+docker compose exec flutter bash -c "cd /workspace/wellfin && flutter run"
 ```
 
 ### 開発環境の構築

@@ -28,26 +28,41 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
   - 専用サービスレイヤーとモデル設計
   - Firebase Cloud Functionsでバックグラウンド同期処理
 
-### 2.3 AIパーソナライゼーション
+### 2.3 AIパーソナライゼーション（Google Cloud AI技術活用）
 - **要件**:
   - ユーザー行動パターンの学習と分析
   - サボりがちなタスクやタイムスロットの特定
   - 個人の生産性ピーク時間の把握と活用
   - コンテキスト認識型の提案生成
+  - 自然言語でのタスク入力と理解
+  - 感情分析によるモチベーション管理
 - **実現方法**:
-  - Vertex AI での予測モデル構築・ホスティング
+  - **Vertex AI Agent Builder**でのインテリジェントエージェント構築
+  - **Gemini API in Vertex AI**での自然言語処理とコンテキスト理解
+  - **Vertex AI Vector Search**でのユーザー行動パターン類似性検索
+  - **Recommendations AI**でのパーソナライズされた推奨システム
+  - **Natural Language AI**でのタスク記述の感情分析と重要度判定
+  - **Vertex AI Model Development Service**でのカスタム機械学習モデル構築
+  - **AutoML**でのユーザー行動予測モデルの自動構築
   - Firebase Analyticsでのユーザー行動データ収集
   - Cloud Firestoreでの時系列データ保存と分析
-  - TensorFlowを使用した機械学習パイプライン構築
 
-### 2.4 スケジュール最適化
+### 2.4 スケジュール最適化（AI駆動型最適化）
 - **要件**:
   - 空き時間の効率的活用提案
   - タスクの優先順位付けと時間配分
   - 準備時間や移動時間を考慮したスケジューリング
   - スケジュール競合の自動検出と解決提案
+  - AIによる最適な時間帯の自動選択
+  - ユーザーの気分やエネルギー状態を考慮したスケジューリング
 - **実現方法**:
-  - Firebase Cloud Functionsでのスケジューリングアルゴリズム実装
+  - **Vertex AI Agent Engine**でのインテリジェントスケジューリングエージェント
+  - **Vertex AI Model Optimizer**でのスケジューリングアルゴリズム最適化
+  - **Gemini API**での自然言語によるスケジュール調整指示の理解
+  - **Vertex Explainable AI**でのスケジュール提案の説明可能性
+  - **Recommendations AI**での時間帯別タスク推奨
+  - Cloud RunでのスケジューリングエンジンAPI
+  - Firebase Cloud Functionsでのイベント駆動型スケジュール更新
   - 優先度スコアリングシステム構築
   - 時間ブロック最適化アルゴリズム
   - リアルタイムカレンダー解析エンジン
@@ -120,22 +135,60 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 
 ## 4. 技術スタック
 
-### 4.1 バックエンド
-- Firebase Authentication: Google認証専用
-- Cloud Firestore: ユーザーデータとアプリケーションデータ
-- Firebase Cloud Functions: サーバーレスバックエンド処理
-- Firebase Cloud Messaging: プッシュ通知
-- Firebase Analytics: ユーザー行動分析
-- Firebase Security Rules: データアクセス制御
-- GCP Vertex AI: AIモデルのホスティングと推論
-- GCP Cloud Run: 必要に応じた追加APIサービス
+### 4.1 バックエンド（Google Cloud AI技術 - 必須条件）
+- **Vertex AI**: AIモデルのホスティングと推論、パーソナライゼーション
+- **Gemini API in Vertex AI**: 自然言語処理とAIアシスタント機能
+- **Vertex AI Agent Builder**: インテリジェントなスケジュール最適化エージェント
+- **Vertex AI Vector Search**: ユーザー行動パターンの類似性検索
+- **Vertex AI Model Development Service**: カスタム機械学習モデルの開発
+- **Vertex Explainable AI**: AI予測の説明可能性と透明性
+- **Natural Language AI**: タスク記述の感情分析と重要度判定
+- **Recommendations AI**: パーソナライズされたタスク推奨システム
+- **Cloud Run**: サーバーレスAPIサービス（スケジュール最適化エンジン）
+- **Cloud Functions**: イベント駆動型のバックエンド処理
+- **Firebase Authentication**: Google認証専用
+- **Cloud Firestore**: ユーザーデータとアプリケーションデータ
+- **Firebase Cloud Messaging**: プッシュ通知
+- **Firebase Analytics**: ユーザー行動分析
 
-### 4.2 フロントエンド
-- Flutter: クロスプラットフォーム対応（iOS/Android）
-- FlutterFire: Flutter用Firebase SDK
-- Google Calendar API: カレンダー連携
-- Provider/Riverpod: 状態管理
-- Hive/SQLite: ローカルデータキャッシュと同期
+### 4.2 フロントエンド（Flutter/Firebase - 特別賞対象）
+- **Flutter**: クロスプラットフォーム対応（iOS/Android）
+- **FlutterFire**: Flutter用Firebase SDK
+- **Google Calendar API**: カレンダー連携
+- **Provider/Riverpod**: 状態管理
+- **Hive/SQLite**: ローカルデータキャッシュと同期
+
+### 4.3 AI・機械学習（Google Cloud AI技術）
+- **Vertex AI Agent Engine**: インテリジェントなスケジュール管理エージェント
+- **Vertex AI Model Optimizer**: モデルパフォーマンス最適化
+- **Gen AI Evaluation**: AIモデルの評価と改善
+- **AutoML**: ユーザー行動予測モデルの自動構築
+- **Document AI**: タスク関連文書の自動処理
+- **Speech-to-Text**: 音声入力によるタスク作成
+- **Text-to-speech**: 音声フィードバック
+
+### 4.4 データ・分析（Google Cloud サービス）
+- **BigQuery**: 大規模データ分析とレポート生成
+- **Cloud Storage**: ファイル保存とバックアップ
+- **Dataflow**: リアルタイムデータ処理パイプライン
+- **Pub/Sub**: イベント駆動型アーキテクチャ
+- **Cloud Scheduler**: 定期タスクとバッチ処理
+- **Secret Manager**: API鍵と機密情報の安全な管理
+
+### 4.5 セキュリティ・運用
+- **Firebase Security Rules**: データアクセス制御
+- **Cloud IAM**: 認証と認可の管理
+- **Cloud Logging**: ログ管理と監視
+- **Error Reporting**: エラー追跡と分析
+- **Firebase Crashlytics**: クラッシュレポート収集
+- **Firebase Performance**: パフォーマンス監視
+
+### 4.6 開発・デプロイ
+- **Cloud Build**: CI/CDパイプライン
+- **Cloud Run**: コンテナ化されたアプリケーション
+- **Firebase App Distribution**: テスト配布
+- **Cloud Source Repositories**: ソースコード管理
+- **Cloud Shell**: クラウドベースの開発環境
 
 ## 5. 主要ユースケース
 
@@ -197,13 +250,37 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 
 ## 6. システムアーキテクチャと開発計画
 
-### 6.1 アーキテクチャ設計
-- クリーンアーキテクチャパターン採用
-- 依存性注入フレームワーク導入（GetIt/Riverpod）
-- マイクロサービスアプローチ（Cloud Functions）
-- APIゲートウェイパターン実装
+### 6.1 アーキテクチャ設計（ハッカソン要件対応）
+- **クリーンアーキテクチャパターン**採用
+- **依存性注入フレームワーク**導入（GetIt/Riverpod）
+- **マイクロサービスアプローチ**（Cloud Run + Cloud Functions）
+- **APIゲートウェイパターン**実装
+- **イベント駆動型アーキテクチャ**（Pub/Sub）
+- **AIファースト設計**（Vertex AI統合）
 
-### 6.2 データベース設計
+### 6.2 Google Cloud AI技術の活用戦略
+
+#### 6.2.1 Vertex AI Agent Builder
+- **スケジュール最適化エージェント**: ユーザーの行動パターンを学習し、最適なスケジュールを提案
+- **習慣形成エージェント**: 個人の習慣形成パターンを分析し、効果的な習慣構築をサポート
+- **モチベーションエージェント**: ユーザーの気分やエネルギー状態に応じた励ましメッセージを生成
+
+#### 6.2.2 Gemini API in Vertex AI
+- **自然言語タスク解析**: ユーザーが自然言語で入力したタスクを構造化データに変換
+- **コンテキスト理解**: タスクの文脈を理解し、適切な優先度と時間配分を提案
+- **パーソナライズされたアドバイス**: ユーザーの過去の行動データに基づく個別化されたアドバイス生成
+
+#### 6.2.3 Vertex AI Vector Search
+- **類似タスク検索**: 過去のタスクと類似性を検索し、効率的なタスク管理を支援
+- **ユーザー行動パターン分析**: 類似ユーザーの行動パターンから学習し、改善提案を生成
+- **コンテンツベース推奨**: タスクの内容に基づく関連タスクや習慣の推奨
+
+#### 6.2.4 Recommendations AI
+- **タスク推奨システム**: ユーザーの好みと行動パターンに基づくタスク推奨
+- **時間帯最適化**: 生産性が高い時間帯に重要なタスクを配置する推奨
+- **習慣形成推奨**: 成功確率の高い習慣形成パターンの推奨
+
+### 6.3 データベース設計
 WellFinは以下のFirestoreコレクション構造を使用します：
 
 - **users**: ユーザープロファイル、設定、統計情報
@@ -215,27 +292,33 @@ WellFinは以下のFirestoreコレクション構造を使用します：
 - **ai_models**: AIパーソナライゼーション用のモデルデータ
 - **notifications**: ユーザー通知
 - **feedback**: システムからのフィードバックとアドバイス
+- **ai_insights**: Vertex AIから生成されたインサイトと推奨事項
+- **vector_embeddings**: タスクとユーザー行動のベクトル表現
 
 コレクションはユーザーIDをベースにネストされた構造をとり、効率的なクエリと堅固なセキュリティを実現します。
 
-### 6.3 セキュリティ設計
-- Firebaseセキュリティルールによるアクセス制御
-- API鍵管理（Secret Manager）
-- データ暗号化（HTTPS, JWT）
-- ユーザー認証と権限管理
+### 6.4 セキュリティ設計
+- **Firebaseセキュリティルール**によるアクセス制御
+- **Secret Manager**によるAPI鍵管理
+- **Cloud IAM**による認証と認可の管理
+- **データ暗号化**（HTTPS, JWT）
+- **ユーザー認証と権限管理**
 
-### 6.4 データ同期戦略
-- リアルタイム同期（重要データ）
-- バッチ同期（分析データ、履歴）
-- オフラインサポートとローカルキャッシュ
-- 競合解決メカニズム
+### 6.5 データ同期戦略
+- **リアルタイム同期**（重要データ）
+- **バッチ同期**（分析データ、履歴）
+- **オフラインサポート**とローカルキャッシュ
+- **競合解決メカニズム**
+- **Vertex AI**とのデータ同期
 
-### 6.5 CI/CD・運用体制
-- GitHub ActionsでCI/CDパイプライン構築
-- Firebase Crashlyticsによるクラッシュレポート収集
-- Firebase Performanceによるモニタリング
-- Cloud LoggingとError Reporting実装
-- Firebase App Distributionによるテスト配布
+### 6.6 CI/CD・運用体制（ハッカソン要件対応）
+- **Cloud Build**でCI/CDパイプライン構築
+- **Cloud Run**でのコンテナ化デプロイ
+- **Firebase Crashlytics**によるクラッシュレポート収集
+- **Firebase Performance**によるモニタリング
+- **Cloud Logging**とError Reporting実装
+- **Firebase App Distribution**によるテスト配布
+- **Cloud Monitoring**によるシステム監視
 
 # WellFin - Firebaseデータベース設計
 

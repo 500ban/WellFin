@@ -1,0 +1,546 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/providers/auth_provider.dart';
+import '../../../../shared/providers/user_provider.dart';
+import '../../../../shared/models/user_model.dart';
+
+class DashboardPage extends ConsumerWidget {
+  const DashboardPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userData = ref.watch(currentUserDataProvider);
+    final authActions = ref.watch(authActionsProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('WellFin'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // 設定ページに遷移
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await authActions.signOut();
+            },
+          ),
+        ],
+      ),
+      body: userData.when(
+        data: (user) {
+          if (user == null) {
+            return const Center(
+              child: Text('ユーザー情報が見つかりません'),
+            );
+          }
+          return _buildDashboardContent(context, user);
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
+        ),
+        error: (error, stack) => Center(
+          child: Text('エラーが発生しました: $error'),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          // タスク追加ページに遷移
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('タスク追加'),
+        backgroundColor: const Color(0xFF2196F3),
+      ),
+    );
+  }
+
+  Widget _buildDashboardContent(BuildContext context, UserModel user) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ユーザー情報カード
+          _buildUserInfoCard(user),
+          const SizedBox(height: 24),
+          
+          // 今日のサマリー
+          _buildTodaySummaryCard(user),
+          const SizedBox(height: 24),
+          
+          // AI推奨セクション
+          _buildAIRecommendationsCard(),
+          const SizedBox(height: 24),
+          
+          // 最近のタスク
+          _buildRecentTasksCard(),
+          const SizedBox(height: 24),
+          
+          // 習慣トラッキング
+          _buildHabitsCard(),
+          const SizedBox(height: 24),
+          
+          // 生産性分析
+          _buildProductivityCard(user),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserInfoCard(UserModel user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: user.photoURL != null
+                  ? NetworkImage(user.photoURL!)
+                  : null,
+              child: user.photoURL == null
+                  ? Text(
+                      user.displayName.isNotEmpty
+                          ? user.displayName[0].toUpperCase()
+                          : 'U',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'お疲れ様です、${user.displayName}さん',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '今日も生産的な一日を過ごしましょう',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodaySummaryCard(UserModel user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '今日のサマリー',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSummaryItem(
+                    '完了タスク',
+                    '${user.stats.completedTasks}',
+                    Icons.check_circle,
+                    Colors.green,
+                  ),
+                ),
+                Expanded(
+                  child: _buildSummaryItem(
+                    '完了率',
+                    '${(user.stats.completionRate * 100).toInt()}%',
+                    Icons.trending_up,
+                    Colors.blue,
+                  ),
+                ),
+                Expanded(
+                  child: _buildSummaryItem(
+                    '連続達成',
+                    '${user.stats.streakDays}日',
+                    Icons.local_fire_department,
+                    Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: color,
+          size: 32,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAIRecommendationsCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.psychology,
+                  color: Color(0xFF2196F3),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'AI推奨',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    // AI推奨を更新
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '今日の生産性を向上させるための提案',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildRecommendationItem(
+              '午前9時から11時は集中力が高い時間帯です。重要なタスクをこの時間に配置することをお勧めします。',
+              Icons.lightbulb,
+              Colors.amber,
+            ),
+            const SizedBox(height: 8),
+            _buildRecommendationItem(
+              '「運動」の習慣が3日間続いています。今日も継続して健康を維持しましょう。',
+              Icons.fitness_center,
+              Colors.green,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItem(String text, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentTasksCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.assignment,
+                  color: Color(0xFF2196F3),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  '最近のタスク',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // タスク一覧ページに遷移
+                  },
+                  child: const Text('すべて表示'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 仮のタスクデータ
+            _buildTaskItem('プロジェクト企画書作成', '完了', Colors.green),
+            _buildTaskItem('チームミーティング', '進行中', Colors.orange),
+            _buildTaskItem('メール返信', '未着手', Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaskItem(String title, String status, Color statusColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 12,
+                color: statusColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHabitsCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.repeat,
+                  color: Color(0xFF2196F3),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  '習慣トラッキング',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // 習慣管理ページに遷移
+                  },
+                  child: const Text('管理'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildHabitItem('運動', 3, 7, Icons.fitness_center),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildHabitItem('読書', 5, 7, Icons.book),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildHabitItem('瞑想', 2, 7, Icons.self_improvement),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHabitItem(String name, int completed, int total, IconData icon) {
+    final progress = completed / total;
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: const Color(0xFF2196F3),
+          size: 24,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          name,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        LinearProgressIndicator(
+          value: progress,
+          backgroundColor: Colors.grey[300],
+          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '$completed/$total',
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductivityCard(UserModel user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.analytics,
+                  color: Color(0xFF2196F3),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  '生産性分析',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // 詳細分析ページに遷移
+                  },
+                  child: const Text('詳細'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        '${(user.stats.completionRate * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2196F3),
+                        ),
+                      ),
+                      const Text(
+                        '今週の完了率',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        '${user.stats.streakDays}',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                      const Text(
+                        '連続達成日数',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+} 

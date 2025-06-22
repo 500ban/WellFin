@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "933043164976",
+    "project_id": "wellfin-72698",
+    "storage_bucket": "wellfin-72698.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933043164976:android:ff135367b7948db1d65af5",
+        "android_client_info": {
+          "package_name": "com.wellfin.aiagent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBe18X6OdiFAkb1v3UJxgCfkmWysVCJHao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
