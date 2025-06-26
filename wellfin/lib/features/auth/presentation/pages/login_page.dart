@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../dashboard/presentation/pages/dashboard_page.dart';
 
 class LoginPage extends ConsumerWidget {
   const LoginPage({super.key});
@@ -10,6 +12,16 @@ class LoginPage extends ConsumerWidget {
     final authActions = ref.watch(authActionsProvider);
     final isLoading = ref.watch(authLoadingProvider);
     final error = ref.watch(authErrorProvider);
+
+    // 認証状態の変化を監視し、ログインしたらダッシュボードへ遷移
+    ref.listen<AsyncValue<User?>>(authStateProvider, (previous, next) {
+      final user = next.value;
+      if (user != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardPage()),
+        );
+      }
+    });
 
     return Scaffold(
       body: Container(

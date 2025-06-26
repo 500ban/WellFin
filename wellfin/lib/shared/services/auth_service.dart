@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
 import '../models/user_model.dart';
+import 'package:flutter/services.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -19,12 +20,27 @@ class AuthService {
   // Google認証でサインイン
   static Future<UserCredential?> signInWithGoogle() async {
     try {
+      _logger.i('Starting Google Sign-In process...');
+      
+      // Google Sign-Inの設定を確認
+      _logger.i('Google Sign-In configuration check...');
+      _logger.i('Package name: com.ban500.wellfin');
+      _logger.i('Firebase project ID: wellfin-72698');
+      
       // Google Sign-Inの実行
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      if (googleUser == null) {
+        _logger.w('Google Sign-In was cancelled by user');
+        return null;
+      }
+
+      _logger.i('Google Sign-In successful for user: ${googleUser.email}');
 
       // Google認証情報を取得
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      _logger.i('Google authentication tokens obtained');
+      _logger.i('Access token: ${googleAuth.accessToken != null ? 'Present' : 'Missing'}');
+      _logger.i('ID token: ${googleAuth.idToken != null ? 'Present' : 'Missing'}');
 
       // Firebase認証情報を作成
       final credential = GoogleAuthProvider.credential(
@@ -34,13 +50,33 @@ class AuthService {
 
       // Firebaseでサインイン
       final userCredential = await _auth.signInWithCredential(credential);
+      _logger.i('Firebase authentication successful for user: ${userCredential.user?.uid}');
       
       // ユーザー情報をFirestoreに保存
       await _saveUserToFirestore(userCredential.user!);
+      _logger.i('User data saved to Firestore');
       
       return userCredential;
     } catch (e) {
       _logger.e('Error signing in with Google: $e');
+      _logger.e('Error details: ${e.toString()}');
+      
+      // より詳細なエラー情報をログに出力
+      if (e is PlatformException) {
+        _logger.e('Platform Exception Code: ${e.code}');
+        _logger.e('Platform Exception Message: ${e.message}');
+        _logger.e('Platform Exception Details: ${e.details}');
+        
+        // エラーコード10の詳細情報
+        if (e.code == 'sign_in_failed' && e.message?.contains('10') == true) {
+          _logger.e('Error 10 typically indicates:');
+          _logger.e('1. SHA-1 fingerprint mismatch in Firebase Console');
+          _logger.e('2. Google Play Services issues on emulator');
+          _logger.e('3. OAuth client configuration problems');
+          _logger.e('4. Package name mismatch');
+        }
+      }
+      
       rethrow;
     }
   }
