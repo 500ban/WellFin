@@ -1,5 +1,10 @@
 {
   "storage": {
     "rules": "storage.rules"
+  },
+  "appDistribution": {
+    "app": "1:933043164976:android:97bcddf0bc4d976dd65af5",
+    "groups": "testers",
+    "releaseNotesFile": "release_notes.txt"
   }
 }

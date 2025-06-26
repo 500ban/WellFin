@@ -173,3 +173,31 @@ wellfin/
 - 配布用APKパス：`wellfin/build/app/outputs/flutter-apk/app-release.apk`
 
 ---
+
+## **次のステップ**
+
+### **1. Firebase Consoleでアプリ登録**
+1. [Firebase Console](https://console.firebase.google.com/)にアクセス
+2. 「wellfin-72698」プロジェクトを選択
+3. 「プロジェクトの概要」→「アプリを追加」→「Android」
+4. パッケージ名: `com.wellfin.aiagent`
+5. アプリのニックネーム: `WellFin`
+6. アプリを登録
+
+### **2. アプリIDを取得**
+登録後、アプリID（例：`1:123456789012:android:abcdef1234567890`）が表示されます。
+
+### **3. firebase.jsonを更新**
+取得したアプリIDで`firebase.json`の`app`フィールドを更新します。
+
+### **4. テスト配布実行**
+```bash
+firebase appdistribution:distribute "build/app/outputs/flutter-apk/app-debug.apk" \
+  --app YOUR_APP_ID \
+  --groups "testers" \
+  --release-notes "WellFin v1.0.0 - タスク管理機能実装"
+```
+
+Firebase Consoleでアプリ登録が完了したら、アプリIDを教えてください。その後、テスト配布を実行できます！
+
+---
