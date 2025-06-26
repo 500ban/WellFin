@@ -215,6 +215,15 @@ flutter doctor
 | 2025年6月 | WSL2接続問題解決 | ✅ 完了 |
 | 2025年6月26日 | Google Sign-Inエラー対応中 | 🔄 進行中 |
 
+## 2025年6月27日 ビルド・配布トラブル対応
+
+- R8（ProGuard）エラー：Google Play Core関連のMissing classでリリースビルド失敗
+  - ProGuardルール追加でも解決せず
+  - 一時的にminify/shrinkを無効化し、リリースビルド成功
+- デバッグビルドは問題なし
+- Firebase App Distributionでテスト配布を推奨
+- 本番リリース時はProGuardルール再調整・難読化有効化が必要
+
 ---
 
 **最終更新**: 2025年6月26日  

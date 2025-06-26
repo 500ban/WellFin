@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../shared/providers/auth_provider.dart';
-import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/models/user_model.dart';
+import '../../../../shared/providers/user_provider.dart';
+import '../../../../shared/providers/auth_provider.dart';
+import '../../../tasks/presentation/pages/task_list_page.dart';
+import '../../../tasks/presentation/providers/task_provider.dart';
+import '../../../tasks/domain/entities/task.dart';
 
-class DashboardPage extends ConsumerWidget {
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends ConsumerState<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // ダッシュボード読み込み時にタスクを取得
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(taskProvider.notifier).loadTasks();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userData = ref.watch(currentUserDataProvider);
     final authActions = ref.watch(authActionsProvider);
 
@@ -16,6 +33,17 @@ class DashboardPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('WellFin'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.task_alt),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const TaskListPage(),
+                ),
+              );
+            },
+            tooltip: 'タスク管理',
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -48,7 +76,11 @@ class DashboardPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // タスク追加ページに遷移
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const TaskListPage(),
+            ),
+          );
         },
         icon: const Icon(Icons.add),
         label: const Text('タスク追加'),
@@ -71,12 +103,16 @@ class DashboardPage extends ConsumerWidget {
           _buildTodaySummaryCard(user),
           const SizedBox(height: 24),
           
+          // クイックアクセスメニュー
+          _buildQuickAccessMenu(context),
+          const SizedBox(height: 24),
+          
           // AI推奨セクション
           _buildAIRecommendationsCard(),
           const SizedBox(height: 24),
           
           // 最近のタスク
-          _buildRecentTasksCard(),
+          _buildRecentTasksCard(context),
           const SizedBox(height: 24),
           
           // 習慣トラッキング
@@ -219,6 +255,120 @@ class DashboardPage extends ConsumerWidget {
     );
   }
 
+  Widget _buildQuickAccessMenu(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'クイックアクセス',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickAccessItem(
+                    context,
+                    'タスク管理',
+                    Icons.task_alt,
+                    const Color(0xFF2196F3),
+                    () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const TaskListPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildQuickAccessItem(
+                    context,
+                    '習慣管理',
+                    Icons.repeat,
+                    Colors.green,
+                    () {
+                      // TODO: 習慣管理ページに遷移
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('習慣管理機能は準備中です'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildQuickAccessItem(
+                    context,
+                    '目標管理',
+                    Icons.flag,
+                    Colors.orange,
+                    () {
+                      // TODO: 目標管理ページに遷移
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('目標管理機能は準備中です'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessItem(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAIRecommendationsCard() {
     return Card(
       child: Padding(
@@ -302,7 +452,7 @@ class DashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentTasksCard() {
+  Widget _buildRecentTasksCard(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -326,17 +476,62 @@ class DashboardPage extends ConsumerWidget {
                 const Spacer(),
                 TextButton(
                   onPressed: () {
-                    // タスク一覧ページに遷移
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const TaskListPage(),
+                      ),
+                    );
                   },
                   child: const Text('すべて表示'),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            // 仮のタスクデータ
-            _buildTaskItem('プロジェクト企画書作成', '完了', Colors.green),
-            _buildTaskItem('チームミーティング', '進行中', Colors.orange),
-            _buildTaskItem('メール返信', '未着手', Colors.grey),
+            // 実際のタスクデータを表示
+            Consumer(
+              builder: (context, ref, child) {
+                final taskState = ref.watch(taskProvider);
+                return taskState.when(
+                  data: (tasks) {
+                    final recentTasks = tasks.take(3).toList();
+                    if (recentTasks.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          'タスクがありません',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: recentTasks.map((task) {
+                        return _buildTaskItem(
+                          task.title,
+                          _getTaskStatusText(task.status),
+                          _getTaskStatusColor(task.status),
+                        );
+                      }).toList(),
+                    );
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (error, stack) => const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'タスクの読み込みに失敗しました',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -372,6 +567,32 @@ class DashboardPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _getTaskStatusText(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return '未着手';
+      case TaskStatus.inProgress:
+        return '進行中';
+      case TaskStatus.completed:
+        return '完了';
+      case TaskStatus.delayed:
+        return '遅延';
+    }
+  }
+
+  Color _getTaskStatusColor(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return Colors.grey;
+      case TaskStatus.inProgress:
+        return Colors.orange;
+      case TaskStatus.completed:
+        return Colors.green;
+      case TaskStatus.delayed:
+        return Colors.red;
+    }
   }
 
   Widget _buildHabitsCard() {
