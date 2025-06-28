@@ -135,7 +135,7 @@ class _HabitListPageState extends ConsumerState<HabitListPage> {
         onPressed: () {
           _showAddHabitDialog(context);
         },
-        backgroundColor: const Color(0xFF4CAF50),
+        backgroundColor: Colors.blue,
         child: const Icon(Icons.add),
       ),
     );
@@ -195,7 +195,7 @@ class _HabitListPageState extends ConsumerState<HabitListPage> {
               icon: const Icon(Icons.add),
               label: const Text('習慣を作成'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
               ),
             ),

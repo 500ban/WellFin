@@ -14,6 +14,7 @@ final taskProvider = StateNotifierProvider<TaskNotifier, AsyncValue<List<Task>>>
     updateTaskUseCase: ref.read(updateTaskUseCaseProvider),
     deleteTaskUseCase: ref.read(deleteTaskUseCaseProvider),
     completeTaskUseCase: ref.read(completeTaskUseCaseProvider),
+    uncompleteTaskUseCase: ref.read(uncompleteTaskUseCaseProvider),
   ),
 );
 
@@ -24,6 +25,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
   final UpdateTaskUseCase updateTaskUseCase;
   final DeleteTaskUseCase deleteTaskUseCase;
   final CompleteTaskUseCase completeTaskUseCase;
+  final UncompleteTaskUseCase uncompleteTaskUseCase;
 
   TaskNotifier({
     required this.createTaskUseCase,
@@ -31,6 +33,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
     required this.updateTaskUseCase,
     required this.deleteTaskUseCase,
     required this.completeTaskUseCase,
+    required this.uncompleteTaskUseCase,
   }) : super(const AsyncValue.loading());
 
   /// 現在のユーザーIDを取得
@@ -153,15 +156,23 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
 
   /// タスクを未完了に戻す
   Future<void> uncompleteTask(String taskId) async {
-    state.whenData((tasks) {
-      final updatedTasks = tasks.map((task) {
-        if (task.id == taskId) {
-          return task.markAsPending();
-        }
-        return task;
-      }).toList();
-      state = AsyncValue.data(updatedTasks);
-    });
+    final result = await uncompleteTaskUseCase(taskId);
+    
+    result.fold(
+      (error) {
+        // エラーハンドリング
+        state = AsyncValue.error(error, StackTrace.current);
+      },
+      (uncompletedTask) {
+        // 成功時は現在のタスクリストを更新
+        state.whenData((tasks) {
+          final updatedTasks = tasks.map((t) {
+            return t.id == uncompletedTask.id ? uncompletedTask : t;
+          }).toList();
+          state = AsyncValue.data(updatedTasks);
+        });
+      },
+    );
   }
 
   /// タスクを開始
@@ -213,6 +224,10 @@ final deleteTaskUseCaseProvider = Provider<DeleteTaskUseCase>((ref) {
 
 final completeTaskUseCaseProvider = Provider<CompleteTaskUseCase>((ref) {
   return CompleteTaskUseCase(_firestoreTaskRepository);
+});
+
+final uncompleteTaskUseCaseProvider = Provider<UncompleteTaskUseCase>((ref) {
+  return UncompleteTaskUseCase(_firestoreTaskRepository);
 });
 
 /// モックタスクリポジトリ（一時的な実装）
@@ -517,5 +532,16 @@ class MockTaskRepository implements TaskRepository {
              task.description.toLowerCase().contains(query.toLowerCase());
     }).toList();
     return dartz.Right(searchResults);
+  }
+
+  @override
+  Future<dartz.Either<String, Task>> uncompleteTask(String taskId) async {
+    final index = _tasks.indexWhere((t) => t.id == taskId);
+    if (index != -1) {
+      final uncompletedTask = _tasks[index].markAsPending();
+      _tasks[index] = uncompletedTask;
+      return dartz.Right(uncompletedTask);
+    }
+    return dartz.Left('タスクが見つかりません');
   }
 } 

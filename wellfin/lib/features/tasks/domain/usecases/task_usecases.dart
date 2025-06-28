@@ -145,6 +145,17 @@ class CompleteTaskUseCase {
   }
 }
 
+/// タスク未完了ユースケース
+class UncompleteTaskUseCase {
+  final TaskRepository repository;
+
+  UncompleteTaskUseCase(this.repository);
+
+  Future<dartz.Either<String, Task>> call(String taskId) async {
+    return await repository.uncompleteTask(taskId);
+  }
+}
+
 /// タスク開始ユースケース
 class StartTaskUseCase {
   final TaskRepository repository;

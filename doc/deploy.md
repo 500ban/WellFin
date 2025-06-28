@@ -219,12 +219,11 @@ flutter build apk --release --build-name={バージョン名}
 - デプロイ
 
 ```
-cd ..
 # Firebase App Distribution配布
-firebase appdistribution:distribute "wellfin/build/app/outputs/flutter-apk/app-release.apk" \
-  --app "1:933043164976:android:97bcddf0bc4d976dd65af5" \
-  --groups "testers" \
-  --release-notes-file "doc/release_notes.md"
+firebase appdistribution:distribute "build/app/outputs/flutter-apk/app-release.apk"
+  --app "1:933043164976:android:97bcddf0bc4d976dd65af5"
+  --groups "testers"
+  --release-notes-file "../doc/release_notes.md"
 ```
 
 #### 2.2 本番リリース（Google Play Store）

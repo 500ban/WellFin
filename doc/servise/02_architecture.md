@@ -4,6 +4,52 @@
 このファイルは、WellFinアプリケーションのデータベース設計、システムアーキテクチャ、Google Cloud AI技術の活用戦略を記載する設計書です。
 アプリケーションの基盤となるデータ構造とシステム設計を管理します。
 
+## 5. デザインシステム・カラー定義
+
+### 5.1 基本カラーパレット
+
+WellFinアプリケーションでは、以下のカラーパレットを統一して使用します：
+
+**基本カラー**
+- **青色 (Colors.blue)**: アプリの基本カラー、AppBar、進捗バー、設定アイコンなど
+
+**機能別カラー**
+- **緑色 (Colors.green)**: タスク管理機能
+- **オレンジ色 (Colors.orange)**: 習慣管理機能  
+- **紫色 (Colors.purple)**: 目標管理機能
+
+### 5.2 カラー使用ガイドライン
+
+**UI要素別のカラー適用**
+- **AppBar**: 青色（基本カラー）
+- **進捗バー**: 青色（基本カラー）
+- **タスク関連**: 緑色（タスクカラー）
+- **習慣関連**: オレンジ色（習慣カラー）
+- **目標関連**: 紫色（目標カラー）
+- **設定アイコン**: 青色（基本カラー）
+
+**アクセシビリティ考慮**
+- カラーのみに依存しない情報伝達
+- 十分なコントラスト比の確保
+- 色覚異常への配慮
+
+### 5.3 実装例
+
+```dart
+// 基本カラー
+backgroundColor: Colors.blue
+
+// 機能別カラー
+taskColor: Colors.green
+habitColor: Colors.orange  
+goalColor: Colors.purple
+
+// 進捗バー
+LinearProgressIndicator(
+  valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+)
+```
+
 ## 6. データベース設計
 
 ### 6.1 Firestoreコレクション構造

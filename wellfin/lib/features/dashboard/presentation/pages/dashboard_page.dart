@@ -10,6 +10,8 @@ import '../../../tasks/presentation/widgets/task_filter_bar.dart';
 import '../../../habits/presentation/pages/habit_list_page.dart';
 import '../../../habits/presentation/providers/habit_provider.dart';
 import '../../../habits/domain/entities/habit.dart';
+import '../../../goals/presentation/pages/goal_list_page.dart';
+import '../../../goals/presentation/providers/goal_provider.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -22,51 +24,76 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // ダッシュボード読み込み時にタスクと習慣を取得
+    // ダッシュボード読み込み時にタスクと習慣と目標を取得
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(taskProvider.notifier).loadTasks();
       ref.read(habitProvider.notifier).loadTodayHabits();
+      ref.read(goalNotifierProvider.notifier).loadGoals();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final userData = ref.watch(currentUserDataProvider);
-    final authActions = ref.watch(authActionsProvider);
+    final authState = ref.watch(authStateProvider);
+
+    // 認証状態が変更された場合の処理
+    authState.when(
+      data: (user) {
+        if (user == null) {
+          // ユーザーがログアウトした場合、ログインページに遷移
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/login',
+                (route) => false,
+              );
+            }
+          });
+        }
+      },
+      loading: () {},
+      error: (_, __) {},
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WellFin'),
+        title: const Text(
+          'WellFin',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.task_alt),
-            onPressed: () {
-              _navigateToTaskListWithFilter(TaskFilter.all);
-            },
-            tooltip: 'タスク管理',
-          ),
-          IconButton(
-            icon: const Icon(Icons.repeat),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const HabitListPage(),
-                ),
-              );
-            },
-            tooltip: '習慣設定',
-          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // 設定ページに遷移
+              _showSettingsBottomSheet();
             },
+            tooltip: '設定',
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await authActions.signOut();
+              try {
+                final authActions = ref.read(authActionsProvider);
+                await authActions.signOut();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('ログアウトに失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
+            tooltip: 'ログアウト',
           ),
         ],
       ),
@@ -215,7 +242,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         final activeHabits = habits.where((h) => h.status == HabitStatus.active).toList();
                         final completedHabits = activeHabits.where((h) => h.isCompletedToday).length;
                         final totalHabits = activeHabits.length;
-                        final habitCompletionRate = totalHabits > 0 ? completedHabits / totalHabits : 0.0;
+                        final completionRate = totalHabits > 0 ? completedHabits / totalHabits : 0.0;
                         
                         return Column(
                           children: [
@@ -227,7 +254,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     '今日のタスク',
                                     '$completedToday/$totalToday',
                                     Icons.task_alt,
-                                    Colors.blue,
+                                    Colors.green,
                                   ),
                                 ),
                                 Expanded(
@@ -243,7 +270,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     '高優先度',
                                     '$highPriorityToday',
                                     Icons.priority_high,
-                                    Colors.red,
+                                    Colors.green,
                                   ),
                                 ),
                               ],
@@ -265,9 +292,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                 Expanded(
                                   child: _buildSummaryItem(
                                     '習慣完了率',
-                                    '${(habitCompletionRate * 100).toInt()}%',
+                                    '${(completionRate * 100).toInt()}%',
                                     Icons.check_circle,
-                                    Colors.purple,
+                                    Colors.orange,
                                   ),
                                 ),
                                 Expanded(
@@ -275,10 +302,112 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                     '連続達成',
                                     '${user.stats.streakDays}日',
                                     Icons.local_fire_department,
-                                    Colors.amber,
+                                    Colors.orange,
                                   ),
                                 ),
                               ],
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            // 目標統計
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final goalState = ref.watch(goalNotifierProvider);
+                                return goalState.when(
+                                  data: (goals) {
+                                    final activeGoals = goals.where((g) => g.isInProgress).length;
+                                    final completedGoals = goals.where((g) => g.isCompleted).length;
+                                    final totalGoals = goals.length;
+                                    final goalCompletionRate = totalGoals > 0 ? completedGoals / totalGoals : 0.0;
+                                    
+                                    return Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildSummaryItem(
+                                            'アクティブ目標',
+                                            '$activeGoals',
+                                            Icons.flag,
+                                            Colors.purple,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: _buildSummaryItem(
+                                            '目標完了率',
+                                            '${(goalCompletionRate * 100).toInt()}%',
+                                            Icons.trending_up,
+                                            Colors.purple,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: _buildSummaryItem(
+                                            '総目標数',
+                                            '$totalGoals',
+                                            Icons.assessment,
+                                            Colors.purple,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                  loading: () => Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildSummaryItem(
+                                          'アクティブ目標',
+                                          '読み込み中...',
+                                          Icons.flag,
+                                          Colors.purple,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _buildSummaryItem(
+                                          '目標完了率',
+                                          '読み込み中...',
+                                          Icons.trending_up,
+                                          Colors.purple,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _buildSummaryItem(
+                                          '総目標数',
+                                          '読み込み中...',
+                                          Icons.assessment,
+                                          Colors.purple,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  error: (_, __) => Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildSummaryItem(
+                                          'アクティブ目標',
+                                          'エラー',
+                                          Icons.flag,
+                                          Colors.purple,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _buildSummaryItem(
+                                          '目標完了率',
+                                          'エラー',
+                                          Icons.trending_up,
+                                          Colors.purple,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _buildSummaryItem(
+                                          '総目標数',
+                                          'エラー',
+                                          Icons.assessment,
+                                          Colors.purple,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         );
@@ -290,7 +419,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               '今日のタスク',
                               '$completedToday/$totalToday',
                               Icons.task_alt,
-                              Colors.blue,
+                              Colors.green,
                             ),
                           ),
                           Expanded(
@@ -306,7 +435,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               '高優先度',
                               '$highPriorityToday',
                               Icons.priority_high,
-                              Colors.red,
+                              Colors.green,
                             ),
                           ),
                         ],
@@ -318,7 +447,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               '今日のタスク',
                               '$completedToday/$totalToday',
                               Icons.task_alt,
-                              Colors.blue,
+                              Colors.green,
                             ),
                           ),
                           Expanded(
@@ -334,7 +463,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               '高優先度',
                               '$highPriorityToday',
                               Icons.priority_high,
-                              Colors.red,
+                              Colors.green,
                             ),
                           ),
                         ],
@@ -348,7 +477,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           '今日のタスク',
                           '読み込み中...',
                           Icons.task_alt,
-                          Colors.blue,
+                          Colors.green,
                         ),
                       ),
                       Expanded(
@@ -364,7 +493,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           '高優先度',
                           '読み込み中...',
                           Icons.priority_high,
-                          Colors.red,
+                          Colors.green,
                         ),
                       ),
                     ],
@@ -376,7 +505,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           '今日のタスク',
                           'エラー',
                           Icons.task_alt,
-                          Colors.blue,
+                          Colors.green,
                         ),
                       ),
                       Expanded(
@@ -392,7 +521,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           '高優先度',
                           'エラー',
                           Icons.priority_high,
-                          Colors.red,
+                          Colors.green,
                         ),
                       ),
                     ],
@@ -457,7 +586,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   child: _buildQuickAccessItem(
                     'タスク',
                     Icons.task,
-                    const Color(0xFF2196F3),
+                    Colors.green,
                     () => _navigateToTaskListWithFilter(TaskFilter.all),
                   ),
                 ),
@@ -466,7 +595,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   child: _buildQuickAccessItem(
                     '習慣',
                     Icons.repeat,
-                    Colors.green,
+                    Colors.orange,
                     () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -481,12 +610,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   child: _buildQuickAccessItem(
                     '目標',
                     Icons.flag,
-                    Colors.orange,
+                    Colors.purple,
                     () {
-                      // 目標管理機能は準備中です
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('目標管理機能は準備中です'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GoalListPage(),
                         ),
                       );
                     },
@@ -550,7 +678,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 const Icon(
                   Icons.psychology,
-                  color: Color(0xFF2196F3),
+                  color: Colors.green,
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -581,13 +709,47 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             _buildRecommendationItem(
               '午前9時から11時は集中力が高い時間帯です。重要なタスクをこの時間に配置することをお勧めします。',
               Icons.lightbulb,
-              Colors.amber,
+              Colors.green,
             ),
             const SizedBox(height: 8),
             _buildRecommendationItem(
               '「運動」の習慣が3日間続いています。今日も継続して健康を維持しましょう。',
               Icons.fitness_center,
-              Colors.green,
+              Colors.orange,
+            ),
+            const SizedBox(height: 8),
+            Consumer(
+              builder: (context, ref, child) {
+                final goalState = ref.watch(goalNotifierProvider);
+                return goalState.when(
+                  data: (goals) {
+                    final activeGoals = goals.where((g) => g.isInProgress).length;
+                    final overdueGoals = goals.where((g) => g.isOverdue).length;
+                    
+                    if (overdueGoals > 0) {
+                      return _buildRecommendationItem(
+                        '$overdueGoals個の目標が期限切れです。優先度を確認して進捗を更新しましょう。',
+                        Icons.warning,
+                        Colors.purple,
+                      );
+                    } else if (activeGoals > 0) {
+                      return _buildRecommendationItem(
+                        '$activeGoals個のアクティブな目標があります。定期的に進捗を確認しましょう。',
+                        Icons.flag,
+                        Colors.purple,
+                      );
+                    } else {
+                      return _buildRecommendationItem(
+                        '新しい目標を設定して、より充実した生活を送りましょう。',
+                        Icons.add_task,
+                        Colors.purple,
+                      );
+                    }
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                );
+              },
             ),
           ],
         ),
@@ -633,7 +795,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 const Icon(
                   Icons.today,
-                  color: Color(0xFF4CAF50),
+                  color: Colors.green,
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -735,7 +897,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   LinearProgressIndicator(
                                     value: progress,
                                     backgroundColor: Colors.grey[300],
-                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
@@ -806,28 +968,94 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildTodayTaskItem(Task task, BuildContext context) {
     final isCompleted = task.isCompleted;
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isCompleted ? Colors.green[50] : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isCompleted ? Colors.green[200]! : Colors.grey[300]!,
+    return GestureDetector(
+      onTap: () {
+        if (isCompleted) {
+          ref.read(taskProvider.notifier).uncompleteTask(task.id);
+        } else {
+          ref.read(taskProvider.notifier).completeTask(task.id);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.grey[300]!,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          // 完了チェックボックス
-          GestureDetector(
-            onTap: () {
-              if (isCompleted) {
-                ref.read(taskProvider.notifier).uncompleteTask(task.id);
-              } else {
-                ref.read(taskProvider.notifier).completeTask(task.id);
-              }
-            },
-            child: Container(
+        child: Row(
+          children: [
+            // タスク情報
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // タスクタイトルと優先度バッジを縦に配置
+                  Text(
+                    task.title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      decoration: isCompleted ? TextDecoration.lineThrough : null,
+                      color: isCompleted ? Colors.grey[600] : null,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // 優先度バッジとサブタスク情報を横に配置
+                  Row(
+                    children: [
+                      // 優先度バッジ
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          task.priority.label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _getPriorityColor(task.priority),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      
+                      if (task.subTasks.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.checklist,
+                              size: 12,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${task.subTasks.where((t) => t.isCompleted).length}/${task.subTasks.length}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // 完了チェックボックス（右端）
+            Container(
               width: 24,
               height: 24,
               decoration: BoxDecoration(
@@ -842,97 +1070,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     )
                   : null,
             ),
-          ),
-          
-          const SizedBox(width: 12),
-          
-          // タスク情報
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // タスクタイトルと優先度バッジを縦に配置
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    decoration: isCompleted ? TextDecoration.lineThrough : null,
-                    color: isCompleted ? Colors.grey[600] : null,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                const SizedBox(height: 4),
-                
-                // 優先度バッジとサブタスク情報を横に配置
-                Row(
-                  children: [
-                    // 優先度バッジ
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(task.priority).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        task.priority.label,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: _getPriorityColor(task.priority),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    
-                    if (task.subTasks.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.checklist,
-                            size: 12,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${task.subTasks.where((t) => t.isCompleted).length}/${task.subTasks.length}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // 操作ボタン
-          if (!isCompleted) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 18),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const TaskListPage(),
-                  ),
-                );
-              },
-              color: Colors.blue[600],
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: 32,
-                minHeight: 32,
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -950,7 +1089,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 const Icon(
                   Icons.repeat,
-                  color: Color(0xFF4CAF50),
+                  color: Colors.orange,
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -1026,7 +1165,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     LinearProgressIndicator(
                       value: completionRate,
                       backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -1276,7 +1415,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 const Icon(
                   Icons.analytics,
-                  color: Color(0xFF2196F3),
+                  color: Colors.green,
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -1337,7 +1476,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                 '今日の完了率',
                                 '${totalToday > 0 ? ((completedToday / totalToday) * 100).toInt() : 0}%',
                                 Icons.today,
-                                Colors.blue,
+                                Colors.green,
                               ),
                             ),
                           ],
@@ -1353,7 +1492,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                 '高優先度',
                                 '$highPriorityTasks',
                                 Icons.priority_high,
-                                Colors.red,
+                                Colors.green,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -1362,7 +1501,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                 '中優先度',
                                 '$mediumPriorityTasks',
                                 Icons.remove,
-                                Colors.orange,
+                                Colors.green,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -1388,7 +1527,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   'サブタスク',
                                   '$completedSubTasks/$totalSubTasks',
                                   Icons.checklist,
-                                  Colors.purple,
+                                  Colors.green,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -1397,7 +1536,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   'サブタスク完了率',
                                   '${totalSubTasks > 0 ? ((completedSubTasks / totalSubTasks) * 100).toInt() : 0}%',
                                   Icons.analytics,
-                                  Colors.indigo,
+                                  Colors.green,
                                 ),
                               ),
                             ],
@@ -1523,6 +1662,195 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => TaskListPage(initialFilter: filter),
+      ),
+    );
+  }
+
+  void _showSettingsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // ハンドル
+            Container(
+              margin: const EdgeInsets.only(top: 16),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // タイトル
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Icon(Icons.settings, size: 28, color: Colors.blue),
+                  const SizedBox(width: 16),
+                  const Text(
+                    '設定',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 設定メニュー
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                  // 管理機能セクション
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      '管理機能',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.task_alt,
+                    title: 'タスク管理',
+                    subtitle: 'タスクの作成・編集・管理',
+                    iconColor: Colors.green,
+                    backgroundColor: Colors.green.withValues(alpha: 0.05),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _navigateToTaskListWithFilter(TaskFilter.all);
+                    },
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.repeat,
+                    title: '習慣設定',
+                    subtitle: '習慣の作成・編集・管理',
+                    iconColor: Colors.orange,
+                    backgroundColor: Colors.orange.withValues(alpha: 0.05),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const HabitListPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.flag,
+                    title: '目標設定',
+                    subtitle: '目標の作成・編集・管理',
+                    iconColor: Colors.purple,
+                    backgroundColor: Colors.purple.withValues(alpha: 0.05),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const GoalListPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // アプリ設定セクション
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      'アプリ設定',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.notifications,
+                    title: '通知設定',
+                    subtitle: 'プッシュ通知の管理',
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.info,
+                    title: 'アプリについて',
+                    subtitle: 'バージョン情報',
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? backgroundColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: (iconColor ?? Colors.blue).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor ?? Colors.blue, size: 22),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 13,
+          ),
+        ),
+        trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
+        onTap: onTap,
       ),
     );
   }

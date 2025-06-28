@@ -25,18 +25,13 @@ class FirestoreTaskRepository implements TaskRepository {
   @override
   Future<dartz.Either<String, Task>> createTask(Task task) async {
     try {
-      print('[DEBUG] createTask: userId=$_currentUserId, task=$task');
       final taskModel = TaskModel.fromDomain(task);
-      print('[DEBUG] Firestoreに書き込むデータ: ${taskModel.toFirestore()}');
       final docRef = await _getTasksCollection().add(taskModel.toFirestore());
-      print('[DEBUG] Firestore書き込み成功: docId=${docRef.id}');
       // 作成されたタスクを取得して返す
       final doc = await docRef.get();
       final createdTask = TaskModel.fromFirestore(doc).toDomain();
-      print('[DEBUG] 作成タスク: $createdTask');
       return dartz.Right(createdTask);
-    } catch (e, st) {
-      print('[ERROR] createTask失敗: $e\n$st');
+    } catch (e) {
       return dartz.Left('タスクの作成に失敗しました: $e');
     }
   }
@@ -272,6 +267,28 @@ class FirestoreTaskRepository implements TaskRepository {
       return dartz.Right(completedTask);
     } catch (e) {
       return dartz.Left('タスクの完了に失敗しました: $e');
+    }
+  }
+
+  @override
+  Future<dartz.Either<String, Task>> uncompleteTask(String taskId) async {
+    try {
+      final docRef = _getTasksCollection().doc(taskId);
+      final doc = await docRef.get();
+      
+      if (!doc.exists) {
+        return dartz.Left('タスクが見つかりません');
+      }
+      
+      final task = TaskModel.fromFirestore(doc).toDomain();
+      final uncompletedTask = task.markAsPending();
+      final taskModel = TaskModel.fromDomain(uncompletedTask);
+      
+      await docRef.update(taskModel.toFirestore());
+      
+      return dartz.Right(uncompletedTask);
+    } catch (e) {
+      return dartz.Left('タスクの未完了化に失敗しました: $e');
     }
   }
 

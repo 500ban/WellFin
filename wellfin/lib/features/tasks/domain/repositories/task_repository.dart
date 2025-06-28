@@ -46,6 +46,9 @@ abstract class TaskRepository {
   /// タスクを完了状態に変更
   Future<dartz.Either<String, Task>> completeTask(String taskId);
 
+  /// タスクを未完了状態に変更
+  Future<dartz.Either<String, Task>> uncompleteTask(String taskId);
+
   /// タスクを進行中状態に変更
   Future<dartz.Either<String, Task>> startTask(String taskId);
 

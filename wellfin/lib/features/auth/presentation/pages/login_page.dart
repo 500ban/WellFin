@@ -61,7 +61,7 @@ class LoginPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    '日常生活向上AIエージェント',
+                    'あなたのより良い未来とともに',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.white70,
@@ -77,7 +77,7 @@ class LoginPage extends ConsumerWidget {
                       child: Column(
                         children: [
                           Text(
-                            'AIがあなたの生活を最適化します',
+                            'あなたの幸せのお手伝いをします',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,

@@ -1,0 +1,14 @@
+{
+  "firestore": {
+    "rules": "../doc/firebase/firestore.rules",
+    "indexes": "../doc/firebase/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "../doc/firebase/storage.rules"
+  },
+  "appDistribution": {
+    "app": "1:933043164976:android:97bcddf0bc4d976dd65af5",
+    "groups": "testers",
+    "releaseNotesFile": "../doc/release_notes.md"
+  }
+}

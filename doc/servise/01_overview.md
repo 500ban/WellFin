@@ -32,10 +32,10 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 | **AIエージェント機能** | 🔄 部分実装 | `ai_agent_service.dart` | サービス層のみ実装 |
 | **Firebase統合** | ✅ 実装済み | `auth_service.dart` | Auth, Firestore対応 |
 | **Android固有機能** | ✅ 実装済み | `android_service.dart` | ネイティブ機能統合 |
-| **Riverpod状態管理** | ✅ 実装済み | `auth_provider.dart`<br>`user_provider.dart`<br>`habit_provider.dart`<br>`task_provider.dart` | 全プロバイダー実装済み |
+| **Riverpod状態管理** | ✅ 実装済み | `auth_provider.dart`<br>`user_provider.dart`<br>`habit_provider.dart`<br>`task_provider.dart`<br>`goal_provider.dart` | 全プロバイダー実装済み |
 | **タスク管理** | ✅ 実装済み | `features/tasks/`<br>`firestore_task_repository.dart`<br>`task_model.dart`<br>`task_provider.dart` | ドメインエンティティ、リポジトリ（Firestore連携）、ユースケース、データモデル、UI、CRUD操作、フィルター機能、統計機能 |
 | **習慣管理** | ✅ 実装済み | `features/habits/`<br>`firestore_habit_repository.dart`<br>`habit_model.dart`<br>`habit_provider.dart` | ドメインエンティティ、リポジトリ（Firestore連携）、ユースケース、データモデル、UI、CRUD操作、ストリーク管理、統計機能、カテゴリ管理 |
-| **目標管理** | ❌ 未実装 | `features/goals/` | ディレクトリ構造のみ |
+| **目標管理** | ✅ 実装済み | `features/goals/`<br>`firestore_goal_repository.dart`<br>`goal_model.dart`<br>`goal_provider.dart` | ドメインエンティティ、リポジトリ（Firestore連携）、ユースケース、データモデル、UI、CRUD操作、マイルストーン管理、進捗追跡、統計機能 |
 | **カレンダー機能** | ❌ 未実装 | `features/calendar/` | ディレクトリ構造のみ |
 | **分析機能** | ❌ 未実装 | `features/analytics/` | ディレクトリ構造のみ |
 
@@ -78,6 +78,23 @@ wellfin/
 │   │           │   ├── add_task_dialog.dart ✅
 │   │           │   └── task_detail_dialog.dart ✅
 │   │           └── providers/task_provider.dart ✅
+│   │   └── goals/
+│   │       ├── data/
+│   │       │   ├── models/goal_model.dart ✅
+│   │       │   └── repositories/firestore_goal_repository.dart ✅
+│   │       ├── domain/
+│   │       │   ├── entities/goal.dart ✅
+│   │       │   ├── repositories/goal_repository.dart ✅
+│   │       │   └── usecases/goal_usecases.dart ✅
+│   │       └── presentation/
+│   │           ├── pages/goal_list_page.dart ✅
+│   │           ├── widgets/
+│   │           │   ├── goal_card.dart ✅
+│   │           │   ├── goal_filter_bar.dart ✅
+│   │           │   ├── add_goal_dialog.dart ✅
+│   │           │   ├── goal_detail_dialog.dart ✅
+│   │           │   └── goal_stats_widget.dart ✅
+│   │           └── providers/goal_provider.dart ✅
 │   ├── shared/
 │   │   ├── services/
 │   │   │   ├── auth_service.dart ✅
@@ -306,6 +323,46 @@ wellfin/
   - カスタムレポート生成エンジン
   - Flutter Chartsによるデータ可視化
   - バッチ処理による定期レポート生成
+
+### 3.4 目標管理機能の実装詳細（最新実装状況：2025年6月28日）
+
+#### 実装済み機能
+- **カテゴリ**: 8種類（個人、健康、仕事、学習、フィットネス、財務、創造性、その他）
+- **優先度**: 4段階（低、中、高、最重要）
+- **ステータス**: 5段階（アクティブ、一時停止、完了、キャンセル、期限切れ）
+- **目標タイプ**: 3種類（一般、数値目標、マイルストーン）
+- **進捗管理**: 0.0-1.0の進捗率、進捗履歴、マイルストーン管理
+- **統計**: 目標数、完了率、アクティブ目標数、期限切れ目標数
+
+#### 目標管理画面の機能
+- **目標一覧表示**: カテゴリ・優先度・ステータス別のフィルタリング
+- **目標カード**: タイトル、説明、進捗バー、期限、優先度を表示
+- **操作メニュー**: 編集、削除、進捗更新、ステータス変更
+- **統計表示**: 目標統計ウィジェットで詳細な分析情報を表示
+- **進捗追跡**: マイルストーン管理と進捗履歴の記録
+- **期限管理**: 期限切れの自動検出と警告表示
+
+#### 目標作成・編集機能
+- **基本情報**: タイトル、説明、カテゴリ、優先度、目標タイプ
+- **期限設定**: 開始日、目標日の設定
+- **数値目標**: 目標値と単位の設定（kg、km、回数など）
+- **マイルストーン**: 複数のマイルストーンの追加・管理
+- **カスタマイズ**: 色設定、アイコン選択、タグ付け
+- **バリデーション**: 必須項目チェック、日付整合性チェック
+
+#### 進捗管理機能
+- **進捗更新**: 手動での進捗率更新
+- **マイルストーン完了**: 個別マイルストーンの完了管理
+- **進捗履歴**: 日付別の進捗記録とノート
+- **自動計算**: マイルストーン完了率による自動進捗計算
+- **重要度スコア**: 優先度と期限を考慮した重要度計算
+
+#### 統計・分析機能
+- **目標統計**: 総目標数、アクティブ目標数、完了率
+- **カテゴリ分布**: カテゴリ別の目標分布
+- **優先度分布**: 優先度別の目標分布
+- **期限管理**: 期限切れ目標の検出と警告
+- **進捗分析**: 期間別の進捗傾向分析
 
 ## 4. 非機能要件
 
