@@ -206,15 +206,25 @@ gcloud run deploy wellfin-api \
 ### 2. リリース手順
 
 #### 2.1 テスト配布（Firebase App Distribution）
+
+- ドキュメント
+  - https://firebase.google.com/docs/app-distribution/android/distribute-cli?hl=ja
+
 ```bash
 # リリースビルド
-flutter build apk --release
+cd wellfin
+flutter build apk --release --build-name={バージョン名}
+```
 
+- デプロイ
+
+```
+cd ..
 # Firebase App Distribution配布
-firebase appdistribution:distribute "build/app/outputs/flutter-apk/app-release.apk" \
+firebase appdistribution:distribute "wellfin/build/app/outputs/flutter-apk/app-release.apk" \
   --app "1:933043164976:android:97bcddf0bc4d976dd65af5" \
   --groups "testers" \
-  --release-notes "WellFin v0.1.0 - 習慣管理機能 & UI改善"
+  --release-notes-file "doc/release_notes.md"
 ```
 
 #### 2.2 本番リリース（Google Play Store）
