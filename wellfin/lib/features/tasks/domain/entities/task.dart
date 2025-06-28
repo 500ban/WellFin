@@ -160,6 +160,20 @@ class Task extends Equatable {
     return copyWith(subTasks: updatedSubTasks);
   }
 
+  /// サブタスクの完了状態を切り替え
+  Task toggleSubTaskCompletion(String subTaskId) {
+    final updatedSubTasks = subTasks.map((task) {
+      if (task.id == subTaskId) {
+        return task.isCompleted 
+            ? task.markAsIncomplete() 
+            : task.markAsCompleted();
+      }
+      return task;
+    }).toList();
+
+    return copyWith(subTasks: updatedSubTasks);
+  }
+
   /// タグを追加
   Task addTag(String tag) {
     if (tags.contains(tag)) return this;

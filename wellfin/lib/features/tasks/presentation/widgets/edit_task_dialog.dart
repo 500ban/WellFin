@@ -3,29 +3,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/task.dart';
 import '../providers/task_provider.dart';
 
-/// タスク追加ダイアログ
-class AddTaskDialog extends ConsumerStatefulWidget {
-  const AddTaskDialog({super.key});
+/// タスク編集ダイアログ
+class EditTaskDialog extends ConsumerStatefulWidget {
+  final Task task;
+
+  const EditTaskDialog({
+    super.key,
+    required this.task,
+  });
 
   @override
-  ConsumerState<AddTaskDialog> createState() => _AddTaskDialogState();
+  ConsumerState<EditTaskDialog> createState() => _EditTaskDialogState();
 }
 
-class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  
-  TaskPriority _selectedPriority = TaskPriority.medium;
-  TaskDifficulty _selectedDifficulty = TaskDifficulty.medium;
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+class _EditTaskDialogState extends ConsumerState<EditTaskDialog> {
+  late TextEditingController _titleController;
+  late TextEditingController _descriptionController;
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+  late int _estimatedDuration;
+  late TaskPriority _selectedPriority;
+  late TaskDifficulty _selectedDifficulty;
+  late List<String> _tags;
   bool _hasTime = false;
-  int _estimatedDuration = 60;
   
   // サブタスク関連
-  final List<SubTask> _subTasks = [];
+  late List<SubTask> _subTasks;
   final _subTaskController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.task.title);
+    _descriptionController = TextEditingController(text: widget.task.description);
+    _selectedDate = widget.task.scheduledDate;
+    _selectedTime = widget.task.scheduledTimeStart != null
+        ? TimeOfDay.fromDateTime(widget.task.scheduledTimeStart!)
+        : TimeOfDay.now();
+    _estimatedDuration = widget.task.estimatedDuration;
+    _selectedPriority = widget.task.priority;
+    _selectedDifficulty = widget.task.difficulty;
+    _tags = List.from(widget.task.tags);
+    _hasTime = widget.task.scheduledTimeStart != null;
+    _subTasks = List.from(widget.task.subTasks);
+  }
 
   @override
   void dispose() {
@@ -48,10 +69,9 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('新しいタスク', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text('タスクを編集', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               Form(
-                key: _formKey,
                 child: _buildFormFields(),
               ),
               const SizedBox(height: 24),
@@ -64,8 +84,8 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: _createTask,
-                    child: const Text('作成'),
+                    onPressed: _updateTask,
+                    child: const Text('更新'),
                   ),
                 ],
               ),
@@ -81,23 +101,17 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // タイトル
-        TextFormField(
+        TextField(
           controller: _titleController,
           decoration: const InputDecoration(
-            labelText: 'タイトル *',
+            labelText: 'タイトル',
             border: OutlineInputBorder(),
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'タイトルを入力してください';
-            }
-            return null;
-          },
         ),
         const SizedBox(height: 16),
         
         // 説明
-        TextFormField(
+        TextField(
           controller: _descriptionController,
           decoration: const InputDecoration(
             labelText: '説明',
@@ -110,14 +124,12 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
         // 日付
         ListTile(
           leading: const Icon(Icons.calendar_today),
-          title: const Text('日付'),
-          subtitle: Text(
-            '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
-          ),
+          title: const Text('予定日'),
+          subtitle: Text('${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}'),
           onTap: () => _selectDate(context),
         ),
         
-        // 時間
+        // 時間設定
         CheckboxListTile(
           title: const Text('時間を設定'),
           value: _hasTime,
@@ -211,6 +223,29 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
           ),
         ),
         
+        // タグ
+        ListTile(
+          leading: const Icon(Icons.tag),
+          title: const Text('タグ'),
+          subtitle: _tags.isNotEmpty
+              ? Wrap(
+                  spacing: 4,
+                  children: _tags.map((tag) => Chip(
+                    label: Text(tag),
+                    onDeleted: () {
+                      setState(() {
+                        _tags.remove(tag);
+                      });
+                    },
+                  )).toList(),
+                )
+              : const Text('タグなし'),
+          trailing: IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _addTag(context),
+          ),
+        ),
+        
         // サブタスク
         const SizedBox(height: 16),
         _buildSubTasksSection(),
@@ -246,11 +281,21 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                leading: Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.grey[600],
+                leading: IconButton(
+                  icon: Icon(
+                    subTask.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: subTask.isCompleted ? Colors.green : Colors.grey,
+                  ),
+                  onPressed: () => _toggleSubTaskCompletion(index),
                 ),
-                title: Text(subTask.title),
+                title: Text(
+                  subTask.title,
+                  style: TextStyle(
+                    decoration: subTask.isCompleted 
+                        ? TextDecoration.lineThrough 
+                        : null,
+                  ),
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                   onPressed: () => _removeSubTask(index),
@@ -274,70 +319,6 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
         ],
       ],
     );
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
-
-  Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
-      });
-    }
-  }
-
-  void _createTask() {
-    if (_formKey.currentState?.validate() ?? false) {
-      if (_titleController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('タイトルを入力してください')),
-        );
-        return;
-      }
-
-      final scheduledDateTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        _hasTime ? _selectedTime.hour : 0,
-        _hasTime ? _selectedTime.minute : 0,
-      );
-
-      final task = Task(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        createdAt: DateTime.now(),
-        scheduledDate: scheduledDateTime,
-        scheduledTimeStart: _hasTime ? scheduledDateTime : null,
-        scheduledTimeEnd: _hasTime 
-            ? scheduledDateTime.add(Duration(minutes: _estimatedDuration))
-            : null,
-        estimatedDuration: _estimatedDuration,
-        priority: _selectedPriority,
-        difficulty: _selectedDifficulty,
-        subTasks: _subTasks,
-      );
-
-      ref.read(taskProvider.notifier).createTask(task);
-      Navigator.of(context).pop();
-    }
   }
 
   void _addSubTask() {
@@ -386,5 +367,112 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
     setState(() {
       _subTasks.removeAt(index);
     });
+  }
+
+  void _toggleSubTaskCompletion(int index) {
+    setState(() {
+      final subTask = _subTasks[index];
+      _subTasks[index] = subTask.isCompleted 
+          ? subTask.markAsIncomplete()
+          : subTask.markAsCompleted();
+    });
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
+  }
+
+  void _addTag(BuildContext context) {
+    final TextEditingController tagController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('タグを追加'),
+        content: TextField(
+          controller: tagController,
+          decoration: const InputDecoration(
+            labelText: 'タグ名',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final tag = tagController.text.trim();
+              if (tag.isNotEmpty && !_tags.contains(tag)) {
+                setState(() {
+                  _tags.add(tag);
+                });
+              }
+              Navigator.of(context).pop();
+            },
+            child: const Text('追加'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _updateTask() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タイトルを入力してください')),
+      );
+      return;
+    }
+
+    final updatedTask = widget.task.copyWith(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      scheduledDate: _selectedDate,
+      scheduledTimeStart: _hasTime
+          ? DateTime(
+              _selectedDate.year,
+              _selectedDate.month,
+              _selectedDate.day,
+              _selectedTime.hour,
+              _selectedTime.minute,
+            )
+          : null,
+      estimatedDuration: _estimatedDuration,
+      priority: _selectedPriority,
+      difficulty: _selectedDifficulty,
+      tags: _tags,
+      subTasks: _subTasks,
+    );
+
+    ref.read(taskProvider.notifier).updateTask(updatedTask);
+    Navigator.of(context).pop();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('タスクを更新しました')),
+    );
   }
 } 

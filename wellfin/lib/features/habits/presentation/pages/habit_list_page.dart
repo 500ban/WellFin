@@ -28,7 +28,7 @@ class _HabitListPageState extends ConsumerState<HabitListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('習慣管理'),
+        title: const Text('習慣'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -131,16 +131,13 @@ class _HabitListPageState extends ConsumerState<HabitListPage> {
           ),
         ],
       ),
-      floatingActionButton: _selectedStatus == HabitStatus.active
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                _showAddHabitDialog(context);
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('習慣追加'),
-              backgroundColor: const Color(0xFF4CAF50),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showAddHabitDialog(context);
+        },
+        backgroundColor: const Color(0xFF4CAF50),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
@@ -660,146 +657,559 @@ class _HabitListPageState extends ConsumerState<HabitListPage> {
   void _showHabitDetailDialog(BuildContext context, Habit habit) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              _getCategoryIcon(habit.category),
-              color: _getCategoryColor(habit.category),
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                habit.title,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (habit.description.isNotEmpty) ...[
-                Text(
-                  '説明',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.95,
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _getCategoryIcon(habit.category),
+                      color: _getCategoryColor(habit.category),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        habit.title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _showEditHabitDialog(context, habit);
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(habit.description),
                 const SizedBox(height: 16),
-              ],
-              
-              // 基本情報
-              _buildDetailRow('カテゴリ', habit.category.label),
-              _buildDetailRow('頻度', '${habit.frequency.label} - ${habit.frequency.description}'),
-              if (habit.frequency == HabitFrequency.weekly && habit.targetDays.isNotEmpty)
-                _buildDetailRow('実行曜日', habit.targetDays.map((d) => d.label).join(', ')),
-              _buildDetailRow('優先度', habit.priority.label),
-              _buildDetailRow('ステータス', habit.status.label),
-              
-              const SizedBox(height: 16),
-              
-              // 統計情報
-              Text(
-                '統計',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
+                _buildHabitDetailContent(context, habit),
+                const SizedBox(height: 24),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('閉じる'),
+                    ),
+                    if (habit.isInProgress && !habit.isCompletedToday)
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          ref.read(habitProvider.notifier).recordDailyCompletion(habit.id);
+                        },
+                        child: const Text('記録'),
+                      ),
+                    if (habit.isInProgress && habit.isCompletedToday)
+                      ElevatedButton(
+                        onPressed: null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('完了済み'),
+                      ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              _buildDetailRow('現在のストリーク', '${habit.currentStreak}日'),
-              _buildDetailRow('最長ストリーク', '${habit.longestStreak}日'),
-              _buildDetailRow('総完了回数', '${habit.totalCompletions}回'),
-              _buildDetailRow('今日の取り組み', habit.isCompletedToday ? '完了済み' : '未完了'),
-              
-              if (habit.completions.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  '最近の完了履歴',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...habit.completions
-                    .take(5)
-                    .map((completion) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${completion.completedAt.year}/${completion.completedAt.month}/${completion.completedAt.day}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ))
-                    .toList(),
               ],
-            ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('閉じる'),
+      ),
+    );
+  }
+
+  Widget _buildHabitDetailContent(BuildContext context, Habit habit) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 説明
+        if (habit.description.isNotEmpty) ...[
+          Text(
+            '説明',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          if (habit.isInProgress && !habit.isCompletedToday)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ref.read(habitProvider.notifier).recordDailyCompletion(habit.id);
-              },
-              child: const Text('今日の取り組みを記録'),
+          const SizedBox(height: 8),
+          Text(
+            habit.description,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+        ],
+        
+        // 基本情報
+        _buildInfoRow(
+          context,
+          'カテゴリ',
+          habit.category.label,
+          _getCategoryIcon(habit.category),
+          _getCategoryColor(habit.category),
+        ),
+        
+        _buildInfoRow(
+          context,
+          '頻度',
+          '${habit.frequency.label} - ${habit.frequency.description}',
+          Icons.repeat,
+          Colors.blue,
+        ),
+        
+        if (habit.frequency == HabitFrequency.weekly && habit.targetDays.isNotEmpty)
+          _buildInfoRow(
+            context,
+            '実行曜日',
+            habit.targetDays.map((d) => d.label).join(', '),
+            Icons.calendar_today,
+            Colors.orange,
+          ),
+        
+        _buildInfoRow(
+          context,
+          '優先度',
+          habit.priority.label,
+          Icons.priority_high,
+          _getPriorityColor(habit.priority),
+        ),
+        
+        _buildInfoRow(
+          context,
+          'ステータス',
+          habit.status.label,
+          _getStatusIcon(habit.status),
+          _getStatusColor(habit.status),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // 統計情報
+        Text(
+          '統計',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        _buildInfoRow(
+          context,
+          '現在のストリーク',
+          '${habit.currentStreak}日',
+          Icons.local_fire_department,
+          Colors.orange,
+        ),
+        
+        _buildInfoRow(
+          context,
+          '最長ストリーク',
+          '${habit.longestStreak}日',
+          Icons.emoji_events,
+          Colors.amber,
+        ),
+        
+        _buildInfoRow(
+          context,
+          '総完了回数',
+          '${habit.totalCompletions}回',
+          Icons.check_circle,
+          Colors.green,
+        ),
+        
+        _buildInfoRow(
+          context,
+          '今日の取り組み',
+          habit.isCompletedToday ? '完了済み' : '未完了',
+          habit.isCompletedToday ? Icons.check_circle : Icons.pending,
+          habit.isCompletedToday ? Colors.green : Colors.grey,
+        ),
+        
+        if (habit.completions.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            '最近の完了履歴',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-          if (habit.isInProgress && habit.isCompletedToday)
-            ElevatedButton(
-              onPressed: null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('今日の取り組み完了済み'),
+          ),
+          const SizedBox(height: 8),
+          ...habit.completions
+              .take(5)
+              .map((completion) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${completion.completedAt.year}/${completion.completedAt.month}/${completion.completedAt.day}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(BuildContext context, String label, String value, IconData icon, Color? color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: color ?? Colors.grey[600],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
+  Color _getPriorityColor(HabitPriority priority) {
+    switch (priority) {
+      case HabitPriority.low:
+        return Colors.green;
+      case HabitPriority.medium:
+        return Colors.orange;
+      case HabitPriority.high:
+        return Colors.red;
+      case HabitPriority.critical:
+        return Colors.purple;
+    }
+  }
+
+  IconData _getStatusIcon(HabitStatus status) {
+    switch (status) {
+      case HabitStatus.active:
+        return Icons.play_arrow;
+      case HabitStatus.paused:
+        return Icons.pause;
+      case HabitStatus.finished:
+        return Icons.flag;
+    }
+  }
+
+  Color _getStatusColor(HabitStatus status) {
+    switch (status) {
+      case HabitStatus.active:
+        return Colors.green;
+      case HabitStatus.paused:
+        return Colors.orange;
+      case HabitStatus.finished:
+        return Colors.blue;
+    }
+  }
+
+  void _showEditHabitDialog(BuildContext context, Habit habit) {
+    final titleController = TextEditingController(text: habit.title);
+    final descriptionController = TextEditingController(text: habit.description);
+    HabitCategory selectedCategory = habit.category;
+    HabitFrequency selectedFrequency = habit.frequency;
+    Set<HabitDay> selectedDays = Set.from(habit.targetDays);
+    HabitPriority selectedPriority = habit.priority;
+    HabitStatus selectedStatus = habit.status;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.95,
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.edit,
+                      color: Colors.blue,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '習慣を編集',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // タイトル
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: '習慣名 *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.title),
+                  ),
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 16),
+                
+                // 説明
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: '説明',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                
+                // カテゴリ
+                DropdownButtonFormField<HabitCategory>(
+                  value: selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'カテゴリ *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  items: HabitCategory.values.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getCategoryIcon(category),
+                            color: _getCategoryColor(category),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(category.label),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      selectedCategory = value;
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 頻度
+                DropdownButtonFormField<HabitFrequency>(
+                  value: selectedFrequency,
+                  decoration: const InputDecoration(
+                    labelText: '頻度 *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.repeat),
+                  ),
+                  items: HabitFrequency.values.map((frequency) {
+                    return DropdownMenuItem(
+                      value: frequency,
+                      child: Text('${frequency.label} - ${frequency.description}'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      selectedFrequency = value;
+                      if (value != HabitFrequency.weekly) {
+                        selectedDays.clear();
+                      }
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 週次の場合の曜日選択
+                if (selectedFrequency == HabitFrequency.weekly) ...[
+                  Text(
+                    '対象曜日 *',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: HabitDay.values.map((day) {
+                      final isSelected = selectedDays.contains(day);
+                      return FilterChip(
+                        label: Text(day.label),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          if (selected) {
+                            selectedDays.add(day);
+                          } else {
+                            selectedDays.remove(day);
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                
+                // 優先度
+                DropdownButtonFormField<HabitPriority>(
+                  value: selectedPriority,
+                  decoration: const InputDecoration(
+                    labelText: '優先度 *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.priority_high),
+                  ),
+                  items: HabitPriority.values.map((priority) {
+                    return DropdownMenuItem(
+                      value: priority,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            color: _getPriorityColor(priority),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(priority.label),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      selectedPriority = value;
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // ステータス
+                DropdownButtonFormField<HabitStatus>(
+                  value: selectedStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'ステータス *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.play_arrow),
+                  ),
+                  items: HabitStatus.values.map((status) {
+                    return DropdownMenuItem(
+                      value: status,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getStatusIcon(status),
+                            color: _getStatusColor(status),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(status.label),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      selectedStatus = value;
+                    }
+                  },
+                ),
+                const SizedBox(height: 24),
+                
+                // ボタン
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('キャンセル'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (titleController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('習慣名を入力してください'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        
+                        if (selectedFrequency == HabitFrequency.weekly && selectedDays.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('対象曜日を選択してください'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        
+                        final updatedHabit = habit.copyWith(
+                          title: titleController.text.trim(),
+                          description: descriptionController.text.trim(),
+                          category: selectedCategory,
+                          frequency: selectedFrequency,
+                          targetDays: selectedDays.toList(),
+                          priority: selectedPriority,
+                          status: selectedStatus,
+                        );
+                        
+                        ref.read(habitProvider.notifier).updateHabit(updatedHabit);
+                        Navigator.of(context).pop();
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('習慣を更新しました'),
+                            backgroundColor: Color(0xFF4CAF50),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('更新'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

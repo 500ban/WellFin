@@ -151,6 +151,19 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
     );
   }
 
+  /// タスクを未完了に戻す
+  Future<void> uncompleteTask(String taskId) async {
+    state.whenData((tasks) {
+      final updatedTasks = tasks.map((task) {
+        if (task.id == taskId) {
+          return task.markAsPending();
+        }
+        return task;
+      }).toList();
+      state = AsyncValue.data(updatedTasks);
+    });
+  }
+
   /// タスクを開始
   Future<void> startTask(String taskId) async {
     state.whenData((tasks) {

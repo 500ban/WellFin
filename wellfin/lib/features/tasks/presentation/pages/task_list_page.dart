@@ -5,22 +5,26 @@ import '../widgets/task_card.dart';
 import '../widgets/task_filter_bar.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/task_detail_dialog.dart';
+import '../widgets/edit_task_dialog.dart';
 import '../providers/task_provider.dart';
 
 /// タスク一覧ページ
 class TaskListPage extends ConsumerStatefulWidget {
-  const TaskListPage({super.key});
+  final TaskFilter? initialFilter;
+  
+  const TaskListPage({super.key, this.initialFilter});
 
   @override
   ConsumerState<TaskListPage> createState() => _TaskListPageState();
 }
 
 class _TaskListPageState extends ConsumerState<TaskListPage> {
-  TaskFilter _currentFilter = TaskFilter.all;
+  late TaskFilter _currentFilter;
 
   @override
   void initState() {
     super.initState();
+    _currentFilter = widget.initialFilter ?? TaskFilter.all;
     // ページ読み込み時にタスクを取得
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(taskProvider.notifier).loadTasks();
@@ -130,6 +134,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             onTap: () => _showTaskDetailDialog(task),
             onComplete: () => _completeTask(task),
             onDelete: () => _deleteTask(task),
+            onEdit: () => _showEditTaskDialog(task),
           ),
         );
       },
@@ -268,6 +273,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     showDialog(
       context: context,
       builder: (context) => TaskDetailDialog(task: task),
+    );
+  }
+
+  void _showEditTaskDialog(Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => EditTaskDialog(task: task),
     );
   }
 

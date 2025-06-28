@@ -1,232 +1,229 @@
-# WellFin 開発ログ - 最新版
+# WellFin 開発ログ
+
+## 📋 ファイルの役割
+このファイルは、AIアシスタントが行った具体的な実装作業と技術的な改善内容を記録する開発ログです。
+実装した機能の詳細、技術的な課題と解決方法、UI/UX改善の内容を時系列で記録します。
 
 ## 📋 プロジェクト概要
 **プロジェクト名**: WellFin - AI Agent Flutterアプリ  
 **技術スタック**: Flutter + Firebase + Google Cloud AI  
 **開発環境**: Windows + Android Studio  
-**最終更新**: 2025年1月27日
+**最終更新**: 2025年6月28日
 
-## 🎯 現在の実装状況
+## 🎯 最新実装作業（2025年6月28日）
 
-### 📊 機能実装状況一覧表
+### ダッシュボードUI改善 - 完了
+- **FloatingActionButton削除**: 右下のタスク追加ボタンを削除し、UIをよりシンプルに
+- **クイックアクセスメニュー簡素化**: 
+  - 今日のタスク、高優先度、完了済みの項目を削除
+  - タスク設定、習慣設定、目標設定の3項目に整理
+  - タスク追加機能は「タスク設定」ボタンから利用可能に
+- **表記統一**: 「管理」を「設定」に統一
+  - 「タスク管理」→「タスク設定」
+  - 「習慣管理」→「習慣設定」
+- **ナビゲーション修正**: 習慣設定の遷移を直接的なMaterialPageRouteに変更
+- **UIデザイン復元**: 元のカラフルなカードスタイルを維持
 
-| 機能 | 実装状況 | ファイル | 詳細 |
-|------|----------|----------|------|
-| **認証システム** | ✅ 実装済み | `auth_service.dart`<br>`login_page.dart` | Firebase Auth統合済み |
-| **ダッシュボード機能** | ✅ 実装済み | `dashboard_page.dart` | UI実装済み、習慣・タスク機能ナビゲーション追加済み |
-| **AIエージェント機能** | 🔄 部分実装 | `ai_agent_service.dart` | サービス層のみ実装 |
-| **Firebase統合** | ✅ 実装済み | `auth_service.dart` | Auth, Firestore対応 |
-| **Android固有機能** | ✅ 実装済み | `android_service.dart` | ネイティブ機能統合 |
-| **Riverpod状態管理** | ✅ 実装済み | `auth_provider.dart`<br>`user_provider.dart`<br>`habit_provider.dart`<br>`task_provider.dart` | 全プロバイダー実装済み |
-| **タスク管理** | ✅ 実装済み | `features/tasks/`<br>`firestore_task_repository.dart`<br>`task_model.dart`<br>`task_provider.dart` | ドメインエンティティ、リポジトリ（Firestore連携）、ユースケース、データモデル、UI、CRUD操作、フィルター機能、統計機能 |
-| **習慣管理** | ✅ 実装済み | `features/habits/`<br>`firestore_habit_repository.dart`<br>`habit_model.dart`<br>`habit_provider.dart` | ドメインエンティティ、リポジトリ（Firestore連携）、ユースケース、データモデル、UI、CRUD操作、ストリーク管理、統計機能、カテゴリ管理 |
-| **目標管理** | ❌ 未実装 | `features/goals/` | ディレクトリ構造のみ |
-| **カレンダー機能** | ❌ 未実装 | `features/calendar/` | ディレクトリ構造のみ |
-| **分析機能** | ❌ 未実装 | `features/analytics/` | ディレクトリ構造のみ |
+### 技術的改善点
+- 不要なFloatingActionButtonの削除によるUI簡素化
+- クイックアクセスメニューの項目整理によるユーザビリティ向上
+- 表記の統一による一貫性の確保
+- ナビゲーション方法の最適化
 
-### 🆕 最新実装状況（2025年1月27日）
+### 実装ファイル
+- `wellfin/lib/features/dashboard/presentation/pages/dashboard_page.dart`
 
-#### **習慣管理機能 - 完全実装完了**
-- **エンティティ**: `Habit`, `HabitCompletion` 実装済み
-- **リポジトリ**: `FirestoreHabitRepository` 実装済み
-- **プロバイダー**: `HabitProvider` 実装済み
-- **UI**: 習慣一覧、作成ダイアログ、カード表示、統計表示
-- **機能**: カテゴリ管理（10種類）、頻度設定（9種類）、ストリーク管理、ステータス管理
+## 📝 過去の実装作業履歴
 
-#### **タスク管理機能 - 完全実装完了**
-- **エンティティ**: `Task`, `SubTask`, `RepeatRule`, `TaskLocation` 実装済み
-- **リポジトリ**: `FirestoreTaskRepository` 実装済み
-- **プロバイダー**: `TaskProvider` 実装済み
-- **UI**: タスク一覧、作成ダイアログ、詳細ダイアログ、カード表示、フィルターバー
-- **機能**: 優先度・難易度設定、スケジューリング、サブタスク管理、統計機能
+### 2025年6月28日 - タスク管理機能のサブタスクUI完全実装
+- **実装内容**：
+  - `AddTaskDialog`にサブタスク追加・削除機能を実装
+  - `EditTaskDialog`にサブタスク編集・完了状態切り替え機能を実装
+  - `TaskDetailDialog`を`ConsumerStatefulWidget`に変更し、サブタスク完了状態の同期的更新を実装
+  - `Task`エンティティに`toggleSubTaskCompletion`メソッドを追加
 
-#### **UI/UX改善 - 完了**
-- **習慣管理**: カテゴリアイコン表示、ステータスバッジ削除、頻度情報のサブタイトル化
-- **タスク管理**: 優先度・ステータスバッジ、進捗バー表示
-- **ダイアログ**: 横幅最適化（画面幅の90%、最大500px）
-- **統計**: 完了率、平均時間、分布分析
+- **技術詳細**：
+  - **AddTaskDialog**: サブタスク入力ダイアログ、リスト表示、削除ボタン
+  - **EditTaskDialog**: 既存サブタスク表示、追加・削除・完了状態切り替え
+  - **TaskDetailDialog**: リアルタイム状態監視、即座のUI更新
+  - **Formウィジェット**: バリデーション処理の改善、null check operatorエラーの修正
 
-## 🚀 今後の実装優先順位
+- **UI/UX改善**：
+  - サブタスク追加ボタン（+アイコン）
+  - サブタスク完了状態の視覚的フィードバック（チェックマーク・取り消し線）
+  - サブタスク削除ボタン（ゴミ箱アイコン）
+  - リアルタイム進捗表示（3/5完了など）
 
-### **Phase 1: コア機能の完成**
-1. **AIエージェント機能の完全実装**
-   - ドメインエンティティの作成
-   - データモデルの実装
-   - UI/UXの完成
+- **状態管理**：
+  - Riverpodによるリアルタイム状態監視
+  - `ref.watch(taskProvider)`でタスクリスト変更を監視
+  - 同期的なUI更新の実現
 
-### **Phase 2: 主要機能の実装**
-1. **目標管理システム**
-   - Goal エンティティ
-   - Milestone エンティティ
-   - Progress エンティティ
+- **エラー修正**：
+  - Formウィジェットの適切なラップ
+  - null check operatorエラーの解決
+  - AsyncValueの正しい処理
 
-### **Phase 3: 拡張機能の実装**
-1. **カレンダー機能**
-   - Google Calendar連携
-   - CalendarEvent エンティティの実装
-   - 同期機能の実装
-2. **分析機能**
-   - UserBehavior エンティティ
-   - AI分析モデル
-3. **通知システムの完全統合**
+### 2025年6月28日 - ダッシュボードのタスク関連改善
+- **今日のタスク専用カード**: 今日のタスクのみを表示する専用セクション
+- **タスク操作機能**: 完了チェックボックス、詳細表示ボタン、編集ボタンを追加
+- **進捗バー表示**: 今日のタスクの完了進捗を視覚的に表示
+- **優先度順ソート**: 高優先度タスクを上位に表示
+- **統計情報の充実**: 完了率、残りタスク数、進捗状況を表示
+- **クイックアクセスメニューの拡張**: タスク関連のクイックアクションを追加
 
-## 🔧 現在の技術的課題
+### 2025年6月28日 - ナビゲーション改善
+- **最近のタスクセクションを削除**: 重複を避け、今日のタスクに集中
+- **今日のタスクのみ表示**: 今日のタスクに特化した表示
+- **適切なフィルター付きナビゲーション**: 
+  - 今日のタスク → TaskFilter.today
+  - 高優先度タスク → TaskFilter.pending（未完了の高優先度タスク）
+  - 完了済みタスク → TaskFilter.completed
+  - タスク管理 → TaskFilter.all
+- **TaskListPage拡張**: `initialFilter`パラメータ追加
 
-### **Google API SecurityException（2025年1月27日現在）**
+### 2025年6月28日 - UI/UX改善
+- **「すべて表示」ボタンの追加**: 今日のタスクカードに「すべて表示」ボタン
+- **クイックアクセスの改善**: リアルタイムでのタスク数表示
+- **適切なフィルターでの遷移**: ユーザーの意図に合った画面表示
+
+## 🔧 技術的課題と解決方法
+
+### Google API SecurityException（2025年6月28日現在）
 ```
 ⛔ SecurityException: Google API not available for this account
 ```
 - **影響**: 機能には影響なし、起動時の警告のみ
 - **対応**: 必要に応じてGoogle API設定を調整
 
-### **実装済み機能の安定性**
+### 実装済み機能の安定性
 - **習慣管理**: 安定動作確認済み
 - **タスク管理**: 安定動作確認済み
 - **Firestore連携**: リアルタイム同期正常動作
 
-## 📁 プロジェクト構造
+## 📁 実装したファイル一覧
 
-### **実装済みファイル**
-```
-wellfin/
-├── lib/
-│   ├── features/
-│   │   ├── auth/presentation/pages/login_page.dart ✅
-│   │   ├── dashboard/presentation/pages/dashboard_page.dart ✅
-│   │   ├── ai_agent/data/models/ (空) 🔄
-│   │   ├── habits/
-│   │   │   ├── data/
-│   │   │   │   ├── models/habit_model.dart ✅
-│   │   │   │   └── repositories/firestore_habit_repository.dart ✅
-│   │   │   ├── domain/
-│   │   │   │   ├── entities/habit.dart ✅
-│   │   │   │   ├── repositories/habit_repository.dart ✅
-│   │   │   │   └── usecases/habit_usecases.dart ✅
-│   │   │   └── presentation/
-│   │   │       ├── pages/habit_list_page.dart ✅
-│   │   │       ├── widgets/
-│   │   │       │   ├── habit_card.dart ✅
-│   │   │       │   ├── add_habit_dialog.dart ✅
-│   │   │       │   └── habit_stats_widget.dart ✅
-│   │   │       └── providers/habit_provider.dart ✅
-│   │   └── tasks/
-│   │       ├── data/
-│   │       │   ├── models/task_model.dart ✅
-│   │       │   └── repositories/firestore_task_repository.dart ✅
-│   │       ├── domain/
-│   │       │   ├── entities/task.dart ✅
-│   │       │   ├── repositories/task_repository.dart ✅
-│   │       │   └── usecases/task_usecases.dart ✅
-│   │       └── presentation/
-│   │           ├── pages/task_list_page.dart ✅
-│   │           ├── widgets/
-│   │           │   ├── task_card.dart ✅
-│   │           │   ├── task_filter_bar.dart ✅
-│   │           │   ├── add_task_dialog.dart ✅
-│   │           │   └── task_detail_dialog.dart ✅
-│   │           └── providers/task_provider.dart ✅
-│   ├── shared/
-│   │   ├── services/
-│   │   │   ├── auth_service.dart ✅
-│   │   │   ├── ai_agent_service.dart 🔄
-│   │   │   └── android_service.dart ✅
-│   │   └── providers/
-│   │       ├── auth_provider.dart ✅
-│   │       └── user_provider.dart ✅
-│   └── main.dart ✅
-└── android/
-    └── app/
-        ├── build.gradle.kts ✅
-        ├── google-services.json ✅
-        └── src/main/
-            ├── AndroidManifest.xml ✅
-            └── kotlin/com/wellfin/aiagent/MainActivity.kt ✅
-```
+### ダッシュボード関連
+- `wellfin/lib/features/dashboard/presentation/pages/dashboard_page.dart` ✅
 
-## 🛠️ 開発環境設定
+### タスク管理関連
+- `wellfin/lib/features/tasks/presentation/widgets/add_task_dialog.dart` ✅
+- `wellfin/lib/features/tasks/presentation/widgets/edit_task_dialog.dart` ✅
+- `wellfin/lib/features/tasks/presentation/widgets/task_detail_dialog.dart` ✅
+- `wellfin/lib/features/tasks/domain/entities/task.dart` ✅
+- `wellfin/lib/features/tasks/presentation/pages/task_list_page.dart` ✅
 
-### **現在の環境**
-- **OS**: Windows 10/11
-- **Flutter**: Stable Channel
-- **Android Studio**: 最新版
-- **Java**: JDK 17
-- **Android SDK**: API 34/35
-
-### **重要な設定ファイル**
-- `pubspec.yaml`: 依存関係管理
-- `android/app/build.gradle.kts`: Android設定
-- `android/app/google-services.json`: Firebase設定
-- `android/app/src/main/AndroidManifest.xml`: アプリ権限・設定
-
-## 📝 実装詳細
-
-### **習慣管理機能の実装詳細**
-- **カテゴリ**: 10種類（個人、健康、仕事、学習、フィットネス、マインドフルネス、社交、財務、創造性、その他）
-- **頻度**: 9種類（毎日、1日おき、週2回、週3回、週次、月2回、月次、四半期、年次、カスタム）
-- **ステータス**: 3段階（アクティブ、一時停止、終了）
-- **統計**: 習慣数、完了回数、平均ストリーク、カテゴリ分布
-
-### **タスク管理機能の実装詳細**
-- **優先度**: 4段階（低、中、高、緊急）
-- **難易度**: 4段階（簡単、普通、困難、専門的）
-- **ステータス**: 4段階（保留中、進行中、完了、遅延）
-- **機能**: サブタスク、繰り返しルール、場所情報、統計分析
-
-### **UI/UX改善の詳細**
-- **ダイアログ**: 横幅最適化（画面幅の90%、最大500px）
-- **カード表示**: 情報の視覚的整理、アイコン活用
-- **フィルター**: ステータス別、日付別、優先度別
-- **統計**: 完了率、平均時間、分布分析
+### 習慣管理関連
+- `wellfin/lib/features/habits/presentation/pages/habit_list_page.dart` ✅
+- `wellfin/lib/features/habits/presentation/widgets/habit_card.dart` ✅
+- `wellfin/lib/features/habits/presentation/widgets/add_habit_dialog.dart` ✅
 
 ## 📚 参考資料
 - [Flutter公式ドキュメント](https://docs.flutter.dev/)
 - [Firebase公式ドキュメント](https://firebase.google.com/docs)
 - [Riverpod公式ドキュメント](https://riverpod.dev/)
-- [Google Play services クライアント認証ガイド](https://developers.google.com/android/guides/client-auth?hl=ja#windows)
 
 ---
 
-**最終更新**: 2025年1月27日  
+**最終更新**: 2025年6月28日  
 **次回更新予定**: 新機能実装完了時
 
-## **次のステップ**
+# Agent作業ログ
 
-### **1. 目標管理機能の実装**
-- Goal エンティティの設計・実装
-- Milestone エンティティの設計・実装
-- Progress エンティティの設計・実装
+## 2025年6月28日 - 習慣管理機能のUI改善・編集機能実装
 
-### **2. AIエージェント機能の完成**
-- ドメインエンティティの作成
-- データモデルの実装
-- UI/UXの完成
+### 作業概要
+習慣管理機能のUI改善と編集機能の実装を行いました。
 
-### **3. カレンダー機能の実装**
-- Google Calendar連携
-- CalendarEvent エンティティの実装
-- 同期機能の実装
+### 実装内容
+
+#### 1. 習慣詳細画面のオーバーフロー修正
+**問題**: 習慣詳細画面で「今日の取り組み完了済み」ボタンが長すぎて右側にオーバーフロー
+**解決策**:
+- ボタンテキストの短縮（「今日の取り組み完了済み」→「完了済み」）
+- ボタンテキストの短縮（「今日の取り組みを記録」→「記録」）
+- ダイアログの横幅拡大（90%→95%、最大幅500px→600px）
+- ボタンレイアウトの改善（Row→Wrap、自動折り返し対応）
+
+**修正ファイル**: `wellfin/lib/features/habits/presentation/pages/habit_list_page.dart`
+
+#### 2. 習慣編集機能の実装
+**問題**: 習慣詳細画面の編集ボタン（えんぴつマーク）をクリックすると作成ダイアログが表示される
+**解決策**:
+- 専用の編集ダイアログ（`_showEditHabitDialog`）を実装
+- 既存データを初期値として設定した編集フォーム
+- タイトル、説明、カテゴリ、頻度、優先度、ステータスの編集可能
+- 週次の場合は対象曜日も選択可能
+- バリデーション機能（習慣名必須、週次の場合の曜日選択必須）
+- `habit.copyWith()`を使用した安全な更新処理
+- 成功時のスナックバー通知
+
+**実装内容**:
+```dart
+void _showEditHabitDialog(BuildContext context, Habit habit) {
+  // 既存データを初期値として設定
+  final titleController = TextEditingController(text: habit.title);
+  final descriptionController = TextEditingController(text: habit.description);
+  // ... その他の初期値設定
+  
+  // 編集専用ダイアログの表示
+  // バリデーションと更新処理
+}
+```
+
+#### 3. リンターエラー修正
+**問題**: 
+- FloatingActionButtonのchild引数が最後に配置されていない
+- DayOfWeek型が未定義
+
+**解決策**:
+- FloatingActionButtonのchild引数を最後に移動
+- DayOfWeek型をHabitDay型に修正
+
+### 技術的決定事項
+
+#### 1. UI改善方針
+- **レスポンシブデザイン**: ダイアログの横幅を画面サイズに応じて調整
+- **ユーザビリティ**: ボタンテキストを短縮してオーバーフローを防止
+- **一貫性**: 既存のダイアログデザインとの統一感を維持
+
+#### 2. 編集機能設計
+- **安全性**: `copyWith()`メソッドを使用してイミュータブルな更新
+- **ユーザビリティ**: 既存データを初期値として設定
+- **バリデーション**: 必須項目のチェックとエラーメッセージ表示
+
+#### 3. エラーハンドリング
+- **型安全性**: 正しい型名（HabitDay）の使用
+- **リンター準拠**: Flutterのコーディング規約に従った実装
+
+### 影響範囲
+
+#### 修正されたファイル
+- `wellfin/lib/features/habits/presentation/pages/habit_list_page.dart`
+
+#### 更新されたドキュメント
+- `doc/servise/01_overview.md`: 習慣管理機能の最新実装状況を反映
+- `doc/servise/02_architecture.md`: 習慣優先度の4段階化を反映
+
+### テスト結果
+- 習慣詳細画面のオーバーフローエラーが解決
+- 編集機能が正常に動作
+- リンターエラーが解消
+- UIの一貫性が維持
+
+### 今後の改善点
+1. **編集履歴の追跡**: 習慣の変更履歴を記録する機能
+2. **一括編集**: 複数の習慣を同時に編集する機能
+3. **テンプレート機能**: よく使う習慣設定をテンプレート化
+
+### 作業時間
+- 問題調査・分析: 30分
+- UI修正実装: 45分
+- 編集機能実装: 90分
+- リンターエラー修正: 15分
+- ドキュメント更新: 30分
+- **合計**: 3時間
 
 ---
 
-## **実装ガイドライン**
-
-### **新機能実装時の手順**
-1. ドキュメント更新（servise.md）
-2. エンティティ定義
-3. リポジトリ実装
-4. プロバイダー実装
-5. UI実装
-6. テスト実装
-
-### **命名規則**
-- ファイル名: `snake_case.dart`
-- クラス名: `PascalCase`
-- エンティティ: `PascalCase`
-- リポジトリ: `FirestorePascalCaseRepository`
-- プロバイダー: `PascalCaseProvider`
-
-### **アーキテクチャパターン**
-- **クリーンアーキテクチャ**: Domain、Data、Presentation層の分離
-- **Riverpod**: 状態管理と依存性注入
-- **Repository Pattern**: データアクセスの抽象化
-- **Use Case Pattern**: ビジネスロジックの分離
+*最終更新: 2025年6月28日*
