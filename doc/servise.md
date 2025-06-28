@@ -158,6 +158,16 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 - **Provider/Riverpod**: 状態管理
 - **Hive/SQLite**: ローカルデータキャッシュと同期
 
+**実装済みアーキテクチャ**
+- **クリーンアーキテクチャ**: Domain、Data、Presentation層の分離
+- **Riverpod**: 状態管理と依存性注入
+- **Repository Pattern**: データアクセスの抽象化
+- **Use Case Pattern**: ビジネスロジックの分離
+- **Feature-based Structure**: 機能別ディレクトリ構成
+- **Firestore Integration**: リアルタイムデータ同期
+- **Error Handling**: Either型による結果管理
+- **Responsive UI**: 適応型レイアウトとダイアログ設計
+
 ### 4.3 AI・機械学習（Google Cloud AI技術）
 - **Vertex AI Agent Engine**: インテリジェントなスケジュール管理エージェント
 - **Vertex AI Model Optimizer**: モデルパフォーマンス最適化
@@ -209,6 +219,15 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 5. 提案の承認または調整
 6. 更新スケジュールのGoogle Calendar同期
 
+**実装済み機能詳細**
+- **タスク一覧表示**: フィルター機能付きのタスクリスト
+- **タスク作成**: フォームバリデーション付きダイアログ
+- **タスク編集**: 詳細ダイアログでの編集機能
+- **タスク完了**: ワンタップでの完了処理
+- **タスク削除**: 確認ダイアログ付き削除機能
+- **フィルター機能**: 全タスク、今日、完了、保留中、期限切れ
+- **統計表示**: 完了率、平均時間、分布分析
+
 ### 5.3 サボり防止サポート
 1. ユーザーのタスク先延ばしパターン検出
 2. タスク前の動機付けメッセージ送信
@@ -247,6 +266,16 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 4. 達成記録・マイルストーン報酬設定
 5. 習慣完了の確認・記録
 6. 習慣定着進捗の視覚化
+
+**実装済み機能詳細**
+- **習慣作成ダイアログ**: 横幅最適化（画面幅の90%、最大500px）
+- **カテゴリ管理**: 10種類のカテゴリ（個人、健康、仕事、学習、フィットネス、マインドフルネス、社交、財務、創造性、その他）
+- **頻度設定**: 9種類の頻度（毎日、1日おき、週2回、週3回、週次、月2回、月次、四半期、年次、カスタム）
+- **曜日選択**: 週次頻度での曜日指定機能
+- **ステータス管理**: アクティブ・一時停止・終了の3段階
+- **取り組み記録**: 日々の完了記録とストリーク管理
+- **統計機能**: 習慣数、完了回数、平均ストリーク、カテゴリ分布
+- **UI最適化**: カテゴリアイコン、ステータスフィルター、完了状態表示
 
 ## 6. システムアーキテクチャと開発計画
 
@@ -365,172 +394,598 @@ Cloud Functions → Firebase Cloud Messaging → プッシュ通知
 - **習慣形成推奨**: 成功確率の高い習慣形成パターンの推奨
 
 ### 6.3 データベース設計
+
+#### 6.3.1 Firestoreコレクション構造
 WellFinは以下のFirestoreコレクション構造を使用します：
 
+**主要コレクション**
 - **users**: ユーザープロファイル、設定、統計情報
 - **goals**: 中長期的な目標とマイルストーン
 - **tasks**: 日々のタスクとスケジュール項目
 - **habits**: 習慣形成のための定期的活動
 - **calendar**: Google Calendarと同期するイベント
+
+**分析・AI関連コレクション**
 - **analytics**: ユーザー行動の分析データ
 - **ai_models**: AIパーソナライゼーション用のモデルデータ
-- **notifications**: ユーザー通知
-- **feedback**: システムからのフィードバックとアドバイス
 - **ai_insights**: Vertex AIから生成されたインサイトと推奨事項
 - **vector_embeddings**: タスクとユーザー行動のベクトル表現
 
-コレクションはユーザーIDをベースにネストされた構造をとり、効率的なクエリと堅固なセキュリティを実現します。
+**システム・通知コレクション**
+- **notifications**: ユーザー通知
+- **feedback**: システムからのフィードバックとアドバイス
+
+**データ構造の特徴**
+- ユーザーIDをベースにネストされた構造
+- 効率的なクエリと堅固なセキュリティ
+- リアルタイム同期対応
+- スケーラブルな設計
+
+#### 6.3.2 実装済み機能のモデル設計
+
+##### 6.3.2.1 習慣管理モデル（実装済み）
+
+**Habit エンティティ**
+```dart
+class Habit {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime createdAt;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final HabitCategory category;
+  final HabitFrequency frequency;
+  final List<HabitDay> targetDays;
+  final TimeOfDay? reminderTime;
+  final HabitPriority priority;
+  final HabitStatus status;
+  final int currentStreak;
+  final int longestStreak;
+  final int totalCompletions;
+  final List<HabitCompletion> completions;
+  final String? goalId;
+  final List<String> tags;
+  final String color;
+  final bool isActive;
+  final String? iconName;
+  final int targetCount;
+  final String? notes;
+}
+```
+
+**HabitCompletion エンティティ**
+```dart
+class HabitCompletion {
+  final String id;
+  final DateTime completedAt;
+  final String? notes;
+}
+```
+
+**習慣カテゴリ（HabitCategory）**
+- personal: 個人
+- health: 健康
+- work: 仕事
+- learning: 学習
+- fitness: フィットネス
+- mindfulness: マインドフルネス
+- social: 社交
+- financial: 財務
+- creative: 創造性
+- other: その他
+
+**習慣頻度（HabitFrequency）**
+- daily: 毎日
+- everyOtherDay: 1日おき
+- twiceAWeek: 週2回
+- threeTimesAWeek: 週3回
+- weekly: 週次（指定曜日）
+- twiceAMonth: 月2回
+- monthly: 月次
+- quarterly: 四半期
+- yearly: 年次
+- custom: カスタム
+
+**習慣ステータス（HabitStatus）**
+- active: アクティブ
+- paused: 一時停止
+- finished: 終了
+
+**習慣優先度（HabitPriority）**
+- low: 低
+- medium: 中
+- high: 高
+
+**Firestore データ構造**
+```json
+{
+  "users": {
+    "userId": {
+      "habits": {
+        "habitId": {
+          "id": "habitId",
+          "title": "習慣名",
+          "description": "説明",
+          "createdAt": "2024-01-01T00:00:00Z",
+          "startDate": "2024-01-01T00:00:00Z",
+          "category": "health",
+          "frequency": "daily",
+          "targetDays": ["monday", "wednesday", "friday"],
+          "status": "active",
+          "currentStreak": 5,
+          "longestStreak": 10,
+          "totalCompletions": 25,
+          "completions": {
+            "completionId": {
+              "id": "completionId",
+              "completedAt": "2024-01-15T10:30:00Z",
+              "notes": "メモ"
+            }
+          },
+          "isActive": true,
+          "targetCount": 1
+        }
+      }
+    }
+  }
+}
+```
+
+##### 6.3.2.2 タスク管理モデル（実装済み）
+
+**Task エンティティ**
+```dart
+class Task {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime createdAt;
+  final DateTime scheduledDate;
+  final DateTime? scheduledTimeStart;
+  final DateTime? scheduledTimeEnd;
+  final int estimatedDuration;
+  final int? actualDuration;
+  final DateTime? completedAt;
+  final DateTime? reminderTime;
+  final TaskPriority priority;
+  final TaskStatus status;
+  final TaskDifficulty difficulty;
+  final String? goalId;
+  final String? milestoneId;
+  final String? parentTaskId;
+  final RepeatRule? repeatRule;
+  final TaskLocation? location;
+  final String? calendarEventId;
+  final List<String> tags;
+  final String color;
+  final bool isSkippable;
+  final double procrastinationRisk;
+  final List<SubTask> subTasks;
+}
+```
+
+**SubTask エンティティ**
+```dart
+class SubTask {
+  final String id;
+  final String title;
+  final DateTime? completedAt;
+}
+```
+
+**RepeatRule エンティティ**
+```dart
+class RepeatRule {
+  final String frequency; // 'daily', 'weekly', 'monthly', 'yearly'
+  final int interval;
+  final List<int>? daysOfWeek; // 0=日曜日, 1=月曜日, ...
+  final int? dayOfMonth; // 1-31
+  final DateTime? endDate;
+  final int? count;
+}
+```
+
+**TaskLocation エンティティ**
+```dart
+class TaskLocation {
+  final String name;
+  final String address;
+  final double? latitude;
+  final double? longitude;
+}
+```
+
+**タスク優先度（TaskPriority）**
+- low: 低（値: 1）
+- medium: 中（値: 3）
+- high: 高（値: 5）
+- urgent: 緊急（値: 7）
+
+**タスクステータス（TaskStatus）**
+- pending: 保留中
+- inProgress: 進行中
+- completed: 完了
+- delayed: 遅延
+
+**タスク難易度（TaskDifficulty）**
+- easy: 簡単（値: 1）
+- medium: 普通（値: 3）
+- hard: 困難（値: 5）
+- expert: 専門的（値: 7）
+
+**Firestore データ構造**
+```json
+{
+  "users": {
+    "userId": {
+      "tasks": {
+        "taskId": {
+          "id": "taskId",
+          "title": "タスク名",
+          "description": "説明",
+          "createdAt": "2024-01-01T00:00:00Z",
+          "scheduledDate": "2024-01-15T00:00:00Z",
+          "scheduledTimeStart": "2024-01-15T09:00:00Z",
+          "scheduledTimeEnd": "2024-01-15T10:00:00Z",
+          "estimatedDuration": 60,
+          "actualDuration": 45,
+          "completedAt": "2024-01-15T09:45:00Z",
+          "priority": 5,
+          "status": "completed",
+          "difficulty": 3,
+          "tags": ["仕事", "重要"],
+          "color": "#2196F3",
+          "isSkippable": false,
+          "procrastinationRisk": 0.2,
+          "subTasks": [
+            {
+              "id": "subTaskId",
+              "title": "サブタスク",
+              "completedAt": "2024-01-15T09:30:00Z"
+            }
+          ],
+          "repeatRule": {
+            "frequency": "weekly",
+            "interval": 1,
+            "daysOfWeek": [1, 3, 5]
+          },
+          "location": {
+            "name": "オフィス",
+            "address": "東京都渋谷区...",
+            "latitude": 35.6581,
+            "longitude": 139.7016
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+#### 6.3.3 実装済み機能の詳細
+
+##### 6.3.3.1 習慣管理機能（実装済み）
+
+**主要機能**
+1. **習慣の作成・編集・削除**
+   - カテゴリ別の習慣管理
+   - 頻度設定（毎日、週次、月次など）
+   - 曜日指定（週次頻度の場合）
+   - 説明とメモ機能
+
+2. **習慣トラッキング**
+   - 日々の取り組み記録
+   - ストリーク（連続達成日数）管理
+   - 完了履歴の保存
+   - 今日の完了状態表示
+
+3. **習慣統計・分析**
+   - 総習慣数、アクティブ数、一時停止数、終了数
+   - 総完了回数と平均ストリーク
+   - カテゴリ別分布
+   - トップ習慣（ストリーク順）
+
+4. **ステータス管理**
+   - アクティブ・一時停止・終了の切り替え
+   - フィルター機能
+   - ステータス別の表示制御
+
+5. **UI/UX機能**
+   - カテゴリ別アイコン表示
+   - ステータスバッジ
+   - 完了状態の視覚的表示
+   - レスポンシブなダイアログ設計
+
+**実装済み機能詳細**
+- **習慣作成ダイアログ**: 横幅最適化（画面幅の90%、最大500px）
+- **カテゴリ管理**: 10種類のカテゴリ
+- **頻度設定**: 9種類の頻度
+- **曜日選択**: 週次頻度での曜日指定機能
+- **ステータス管理**: アクティブ・一時停止・終了の3段階
+- **取り組み記録**: 日々の完了記録とストリーク管理
+- **統計機能**: 習慣数、完了回数、平均ストリーク、カテゴリ分布
+- **UI最適化**: カテゴリアイコン、ステータスフィルター、完了状態表示
+
+##### 6.3.3.2 タスク管理機能（実装済み）
+
+**主要機能**
+1. **タスクの作成・編集・削除**
+   - タイトル、説明、日時設定
+   - 優先度と難易度の設定
+   - 予想時間の設定
+   - タグ管理
+
+2. **タスクスケジューリング**
+   - 日付と時間の設定
+   - 繰り返しルール（毎日、週次、月次、年次）
+   - 場所情報の設定
+   - リマインダー設定
+
+3. **タスクトラッキング**
+   - ステータス管理（保留中、進行中、完了、遅延）
+   - 進捗率の計算
+   - 実際の所要時間記録
+   - サブタスク管理
+
+4. **タスク分析・統計**
+   - 完了率の計算
+   - 優先度別・難易度別の分布
+   - 平均完了時間
+   - 先延ばしリスク分析
+
+5. **フィルター・検索機能**
+   - ステータス別フィルター
+   - 日付別フィルター
+   - 優先度別フィルター
+   - タグ別フィルター
+
+6. **UI/UX機能**
+   - タスクカード表示
+   - 優先度・ステータスバッジ
+   - 進捗バー表示
+   - レスポンシブなダイアログ設計
+
+**実装済み機能詳細**
+- **タスク作成ダイアログ**: フォームバリデーション、日時選択、優先度設定
+- **タスク詳細ダイアログ**: 全情報表示、編集機能、サブタスク管理
+- **タスクカード**: 視覚的な情報表示、クイックアクション
+- **フィルターバー**: ステータス別、日付別のフィルタリング
+- **統計機能**: 完了率、平均時間、分布分析
+- **Firestore連携**: リアルタイム同期、エラーハンドリング
+
+#### 6.3.4 今後の実装予定機能
+
+##### 6.3.4.1 目標管理モデル（実装予定）
+- **Goal エンティティ**: 長期目標とマイルストーン
+- **Milestone エンティティ**: 中間目標
+- **Progress エンティティ**: 進捗記録
+
+##### 6.3.4.2 カレンダー管理モデル（実装予定）
+- **CalendarEvent エンティティ**: Google Calendar連携
+- **EventRule エンティティ**: イベントルール
+- **CalendarSync エンティティ**: 同期状態管理
+
+##### 6.3.4.3 AI分析モデル（実装予定）
+- **UserBehavior エンティティ**: ユーザー行動データ
+- **AIPrediction エンティティ**: AI予測結果
+- **Recommendation エンティティ**: 推奨事項
+
+#### 6.3.5 新機能追加ガイドライン（エージェント作業用）
+
+##### 6.3.5.1 新機能実装時の手順
+
+**1. ドキュメント更新手順**
+```
+1. 6.3.1 Firestoreコレクション構造に新しいコレクションを追加
+2. 6.3.2 実装済み機能のモデル設計に新しいエンティティを追加
+3. 6.3.3 実装済み機能の詳細に新しい機能の詳細を追加
+4. 6.3.4 今後の実装予定機能から該当項目を削除
+5. 6.3.5 アーキテクチャパターンに新しいプロバイダー・リポジトリを追加
+```
+
+**2. エンティティ定義のテンプレート**
+```dart
+// 新しいエンティティの例
+class NewFeature {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final String userId;
+  final NewFeatureStatus status;
+  final List<String> tags;
+  final String color;
+  final bool isActive;
+  // 機能固有のフィールド
+}
+```
+
+**3. Firestore構造のテンプレート**
+```json
+{
+  "users": {
+    "userId": {
+      "newFeatures": {
+        "featureId": {
+          "id": "featureId",
+          "title": "機能名",
+          "description": "説明",
+          "createdAt": "2024-01-01T00:00:00Z",
+          "updatedAt": "2024-01-01T00:00:00Z",
+          "userId": "userId",
+          "status": "active",
+          "tags": ["タグ1", "タグ2"],
+          "color": "#2196F3",
+          "isActive": true
+        }
+      }
+    }
+  }
+}
+```
+
+##### 6.3.5.2 実装時のファイル構成
+
+**新しい機能を追加する際のディレクトリ構造**
+```
+lib/features/new_feature/
+├── data/
+│   ├── models/
+│   │   └── new_feature_model.dart
+│   └── repositories/
+│       └── firestore_new_feature_repository.dart
+├── domain/
+│   ├── entities/
+│   │   └── new_feature.dart
+│   ├── repositories/
+│   │   └── new_feature_repository.dart
+│   └── usecases/
+│       └── new_feature_usecases.dart
+└── presentation/
+    ├── pages/
+    │   └── new_feature_list_page.dart
+    ├── providers/
+    │   └── new_feature_provider.dart
+    └── widgets/
+        ├── new_feature_card.dart
+        └── add_new_feature_dialog.dart
+```
+
+##### 6.3.5.3 実装時の注意事項
+
+**1. クリーンアーキテクチャの遵守**
+- Domain層: エンティティ、リポジトリインターフェース、ユースケース
+- Data層: リポジトリ実装、データモデル、Firestore連携
+- Presentation層: UI、プロバイダー、ページ
+
+**2. Riverpod状態管理の実装**
+```dart
+// プロバイダーの例
+final newFeatureProvider = StateNotifierProvider<NewFeatureNotifier, AsyncValue<List<NewFeature>>>((ref) {
+  final repository = ref.watch(newFeatureRepositoryProvider);
+  return NewFeatureNotifier(repository);
+});
+```
+
+**3. エラーハンドリング**
+- Either型を使用した結果管理
+- ユーザーフレンドリーなエラーメッセージ
+- オフライン対応の考慮
+
+**4. UI/UX設計原則**
+- レスポンシブデザイン
+- アクセシビリティ対応
+- 一貫したデザインシステム
+- ダイアログの横幅最適化（画面幅の90%、最大500px）
+
+##### 6.3.5.4 テスト実装ガイドライン
+
+**1. ユニットテスト**
+- エンティティのテスト
+- リポジトリのテスト
+- ユースケースのテスト
+
+**2. ウィジェットテスト**
+- ページのテスト
+- ダイアログのテスト
+- カードのテスト
+
+**3. 統合テスト**
+- Firestore連携のテスト
+- プロバイダーのテスト
+
+##### 6.3.5.5 ドキュメント更新チェックリスト
+
+**実装完了後の確認項目**
+- [ ] エンティティ定義が6.3.2に追加されている
+- [ ] Firestore構造が6.3.2に記載されている
+- [ ] 機能詳細が6.3.3に追加されている
+- [ ] 実装予定機能から該当項目が削除されている
+- [ ] アーキテクチャパターンに新しいコンポーネントが追加されている
+- [ ] コレクション構造に新しいコレクションが追加されている
+
+##### 6.3.5.6 命名規則
+
+**ファイル名**
+- エンティティ: `snake_case.dart`
+- モデル: `snake_case_model.dart`
+- リポジトリ: `firestore_snake_case_repository.dart`
+- プロバイダー: `snake_case_provider.dart`
+- ページ: `snake_case_page.dart`
+- ウィジェット: `snake_case_widget.dart`
+
+**クラス名**
+- エンティティ: `PascalCase`
+- モデル: `PascalCaseModel`
+- リポジトリ: `FirestorePascalCaseRepository`
+- プロバイダー: `PascalCaseProvider`
+- ページ: `PascalCasePage`
+- ウィジェット: `PascalCaseWidget`
+
+##### 6.3.5.7 実装順序の推奨
+
+**1. ドメイン層の実装**
+```
+1. エンティティの定義
+2. リポジトリインターフェースの定義
+3. ユースケースの実装
+```
+
+**2. データ層の実装**
+```
+1. データモデルの実装
+2. Firestoreリポジトリの実装
+3. エラーハンドリングの実装
+```
+
+**3. プレゼンテーション層の実装**
+```
+1. プロバイダーの実装
+2. ページの実装
+3. ウィジェットの実装
+4. UI/UXの最適化
+```
+
+**4. テストの実装**
+```
+1. ユニットテスト
+2. ウィジェットテスト
+3. 統合テスト
+```
+
+**5. ドキュメントの更新**
+```
+1. servise.mdの更新
+2. README.mdの更新
+3. コメントの追加
+```
+
+#### 6.3.6 アーキテクチャパターン（実装済み）
+
+**クリーンアーキテクチャ**
+- **Domain Layer**: エンティティ、リポジトリインターフェース、ユースケース
+- **Data Layer**: リポジトリ実装、データモデル、Firestore連携
+- **Presentation Layer**: UI、プロバイダー、ページ
+
+**状態管理（Riverpod）**
+- **HabitProvider**: 習慣データの状態管理
+- **TaskProvider**: タスクデータの状態管理
+- **非同期処理**: データ取得、作成、更新、削除
+- **リアルタイム更新**: Firestoreリスナーによる自動更新
+
+**リポジトリパターン**
+- **HabitRepository**: 習慣データアクセスの抽象化
+- **FirestoreHabitRepository**: Firestore実装
+- **TaskRepository**: タスクデータアクセスの抽象化
+- **FirestoreTaskRepository**: Firestore実装
+- **エラーハンドリング**: Either型による結果管理
+
+**実装済み機能**
+- **習慣管理**: カテゴリ別管理、頻度設定、ストリーク管理、統計機能
+- **タスク管理**: 優先度・難易度設定、スケジューリング、サブタスク管理、分析機能
+- **Firestore連携**: リアルタイム同期、エラーハンドリング、データ永続化
+- **UI/UX**: レスポンシブデザイン、フィルター機能、統計表示
 
 ### 6.4 セキュリティ設計
-- **Firebaseセキュリティルール**によるアクセス制御
-- **Secret Manager**によるAPI鍵管理
-- **Cloud IAM**による認証と認可の管理
-- **データ暗号化**（HTTPS, JWT）
-- **ユーザー認証と権限管理**
-
-### 6.5 データ同期戦略
-- **リアルタイム同期**（重要データ）
-- **バッチ同期**（分析データ、履歴）
-- **オフラインサポート**とローカルキャッシュ
-- **競合解決メカニズム**
-- **Vertex AI**とのデータ同期
-
-### 6.6 CI/CD・運用体制（ハッカソン要件対応）
-
-#### 6.6.1 デプロイパイプライン構成
-
-**📱 Flutterアプリのデプロイ**
-- **Cloud Build**でCI/CDパイプライン構築
-- **Firebase App Distribution**によるテスト配布
-- **Google Play Console**への自動アップロード（本番）
-
-**🤖 Cloud Run APIのデプロイ**
-- **Cloud Build**でコンテナイメージ作成
-- **Cloud Run**でのコンテナ化デプロイ
-- **Cloud Functions**の自動デプロイ
-
-#### 6.6.2 監視・運用体制
-
-**アプリケーション監視**
-- **Firebase Crashlytics**によるクラッシュレポート収集
-- **Firebase Performance**によるモニタリング
-- **Cloud Logging**とError Reporting実装
-
-**インフラ監視**
-- **Cloud Monitoring**によるシステム監視
-- **Cloud Run**の自動スケーリング監視
-- **Firestore**のパフォーマンス監視
-
-#### 6.6.3 開発・テスト環境
-
-**開発環境**
-- **Firebase Emulator Suite**でローカル開発
-- **Cloud Shell**でクラウドベース開発
-- **GitHub Actions**でCI/CD自動化
-
-**テスト環境**
-- **Firebase App Distribution**でモバイルアプリテスト
-- **Cloud Run**のステージング環境
-- **Firestore**のテストデータセット
-
-### 6.7 予想コスト分析
-
-#### 6.7.1 月間予想コスト（開発・テスト段階）
-
-**🔥 Firebase サービス**
-- **Authentication**: 無料枠（月10,000認証まで）
-- **Firestore**: 無料枠（月1GBストレージ、50,000読み取り、20,000書き込み）
-- **Cloud Messaging**: 無料
-- **App Distribution**: 無料（最大100テスター）
-- **Crashlytics**: 無料
-- **Performance**: 無料
-- **Analytics**: 無料
-
-**🤖 Cloud Run**
-- **AIエージェントAPI**: 無料枠（月200万リクエスト、360,000 vCPU秒、180,000 GiB秒）
-- **予想コスト**: 開発段階では無料枠内で収まる見込み
-
-**⚡ Cloud Functions**
-- **イベント処理**: 無料枠（月200万回実行、400,000 GB秒、200,000 vCPU秒）
-- **予想コスト**: 開発段階では無料枠内で収まる見込み
-
-**🧠 Vertex AI**
-- **Gemini API**: 無料枠（月15,000リクエスト）
-- **Vertex AI Agent Builder**: 無料枠（月100時間）
-- **Recommendations AI**: 無料枠（月100万推奨）
-- **Vector Search**: 無料枠（月1GBストレージ、100万クエリ）
-- **予想コスト**: 開発段階では無料枠内で収まる見込み
-
-**📊 その他サービス**
-- **Cloud Build**: 無料枠（月120分）
-- **Cloud Storage**: 無料枠（月5GB）
-- **Cloud Logging**: 無料枠（月50GB）
-- **Cloud Monitoring**: 無料枠（月100万メトリック）
-
-#### 6.7.2 月間予想コスト（本番運用段階）
-
-**想定ユーザー数**: 1,000人
-
-**🔥 Firebase サービス**
-- **Authentication**: $0（無料枠内）
-- **Firestore**: $25-50（データ量と読み書き回数による）
-- **Cloud Messaging**: $0（無料）
-- **App Distribution**: $0（無料）
-- **Crashlytics**: $0（無料）
-- **Performance**: $0（無料）
-- **Analytics**: $0（無料）
-
-**🤖 Cloud Run**
-- **AIエージェントAPI**: $50-100（API呼び出し回数による）
-- **コンテナ実行時間**: $20-40
-
-**⚡ Cloud Functions**
-- **イベント処理**: $10-30（実行回数による）
-
-**🧠 Vertex AI**
-- **Gemini API**: $100-200（自然言語処理リクエスト）
-- **Vertex AI Agent Builder**: $50-100（AIエージェント実行時間）
-- **Recommendations AI**: $50-100（推奨生成）
-- **Vector Search**: $20-50（検索クエリ）
-
-**📊 その他サービス**
-- **Cloud Build**: $10-20（ビルド時間）
-- **Cloud Storage**: $5-10（ファイル保存）
-- **Cloud Logging**: $10-20（ログ量）
-- **Cloud Monitoring**: $5-10（監視メトリック）
-
-**合計予想コスト**: $350-700/月
-
-#### 6.7.3 コスト最適化戦略
-
-**開発段階**
-- 無料枠を最大限活用
-- ローカル開発環境（Firebase Emulator）を活用
-- テストデータの最小化
-
-**本番運用段階**
-- **自動スケーリング**の適切な設定
-- **キャッシュ戦略**の実装
-- **バッチ処理**の活用
-- **データアーカイブ**の定期実行
-
-**コスト監視**
-- **Cloud Billing**での予算アラート設定
-- **Cloud Monitoring**でのリソース使用量監視
-- **月次コスト分析**の実施
-
-#### 6.7.4 段階的スケール戦略
-
-**Phase 1: MVP（0-100ユーザー）**
-- 予想コスト: $50-100/月
-- 無料枠を中心とした構成
-
-**Phase 2: 成長期（100-1,000ユーザー）**
-- 予想コスト: $200-500/月
-- 必要に応じて有料プランに移行
-
-**Phase 3: 本格運用（1,000+ユーザー）**
-- 予想コスト: $500+/月
-- エンタープライズ機能の検討
-
-### 6.2 Google Cloud AI技術の活用戦略

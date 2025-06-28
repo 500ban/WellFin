@@ -6,6 +6,9 @@ import '../../../../shared/providers/auth_provider.dart';
 import '../../../tasks/presentation/pages/task_list_page.dart';
 import '../../../tasks/presentation/providers/task_provider.dart';
 import '../../../tasks/domain/entities/task.dart';
+import '../../../habits/presentation/pages/habit_list_page.dart';
+import '../../../habits/presentation/providers/habit_provider.dart';
+import '../../../habits/domain/entities/habit.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -18,9 +21,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // ダッシュボード読み込み時にタスクを取得
+    // ダッシュボード読み込み時にタスクと習慣を取得
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(taskProvider.notifier).loadTasks();
+      ref.read(habitProvider.notifier).loadTodayHabits();
     });
   }
 
@@ -43,6 +47,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               );
             },
             tooltip: 'タスク管理',
+          ),
+          IconButton(
+            icon: const Icon(Icons.repeat),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const HabitListPage(),
+                ),
+              );
+            },
+            tooltip: '習慣管理',
           ),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -275,7 +290,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 Expanded(
                   child: _buildQuickAccessItem(
                     context,
-                    'タスク管理',
+                    'タスク',
                     Icons.task_alt,
                     const Color(0xFF2196F3),
                     () {
@@ -291,14 +306,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 Expanded(
                   child: _buildQuickAccessItem(
                     context,
-                    '習慣管理',
+                    '習慣',
                     Icons.repeat,
                     Colors.green,
                     () {
-                      // TODO: 習慣管理ページに遷移
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('習慣管理機能は準備中です'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const HabitListPage(),
                         ),
                       );
                     },
@@ -308,7 +322,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 Expanded(
                   child: _buildQuickAccessItem(
                     context,
-                    '目標管理',
+                    '目標',
                     Icons.flag,
                     Colors.orange,
                     () {
@@ -596,6 +610,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildHabitsCard() {
+    final habitsState = ref.watch(habitProvider);
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -606,7 +622,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 const Icon(
                   Icons.repeat,
-                  color: Color(0xFF2196F3),
+                  color: Color(0xFF4CAF50),
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -619,27 +635,131 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 const Spacer(),
                 TextButton(
                   onPressed: () {
-                    // 習慣管理ページに遷移
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const HabitListPage(),
+                      ),
+                    );
                   },
                   child: const Text('管理'),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildHabitItem('運動', 3, 7, Icons.fitness_center),
+            habitsState.when(
+              data: (habits) {
+                // statusがactiveの習慣のみ表示
+                final activeHabits = habits.where((h) => h.status == HabitStatus.active).toList();
+                if (activeHabits.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        '今日の習慣はありません\n新しい習慣を作成しましょう',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                final completedHabits = activeHabits.where((h) => h.isCompletedToday).length;
+                final totalHabits = activeHabits.length;
+                final completionRate = totalHabits > 0 ? completedHabits / totalHabits : 0.0;
+                return Column(
+                  children: [
+                    // サマリー情報
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildHabitSummaryItem(
+                            '完了',
+                            completedHabits,
+                            totalHabits,
+                            Icons.check_circle,
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildHabitSummaryItem(
+                            '残り',
+                            totalHabits - completedHabits,
+                            totalHabits,
+                            Icons.pending,
+                            Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // 進捗バー
+                    LinearProgressIndicator(
+                      value: completionRate,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${(completionRate * 100).toInt()}% 完了',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // 習慣リスト（最大3つまで表示）
+                    ...activeHabits.take(3).map((habit) => _buildHabitListItem(habit)),
+                    if (activeHabits.length > 3) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          '他 ${activeHabits.length - 3} 個の習慣...',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildHabitItem('読書', 5, 7, Icons.book),
+              ),
+              error: (error, stack) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 32,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '習慣の読み込みに失敗しました',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(habitProvider.notifier).loadTodayHabits();
+                        },
+                        child: const Text('再試行'),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildHabitItem('瞑想', 2, 7, Icons.self_improvement),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -647,39 +767,174 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildHabitItem(String name, int completed, int total, IconData icon) {
-    final progress = completed / total;
+  Widget _buildHabitSummaryItem(String label, int count, int total, IconData icon, Color color) {
     return Column(
       children: [
         Icon(
           icon,
-          color: const Color(0xFF2196F3),
+          color: color,
           size: 24,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
-          name,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
+          '$count',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
-        const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.grey[300],
-          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
-        ),
-        const SizedBox(height: 4),
         Text(
-          '$completed/$total',
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey[600],
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildHabitListItem(Habit habit) {
+    final isCompleted = habit.isCompletedToday;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isCompleted ? Colors.green.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: _getCategoryColor(habit.category),
+              child: Icon(
+                habit.frequency.icon,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          habit.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            decoration: isCompleted ? TextDecoration.lineThrough : null,
+                            color: isCompleted ? Colors.grey : null,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(habit.category).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          habit.category.label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _getCategoryColor(habit.category),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        habit.frequency.icon,
+                        size: 12,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        habit.frequency.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.local_fire_department,
+                        size: 12,
+                        color: Colors.orange[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${habit.currentStreak}日',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                // 習慣の日々の取り組みを記録
+                ref.read(habitProvider.notifier).recordDailyCompletion(habit.id);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: isCompleted ? Colors.green : Colors.grey,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getCategoryColor(HabitCategory category) {
+    switch (category) {
+      case HabitCategory.health:
+        return Colors.green;
+      case HabitCategory.work:
+        return Colors.blue;
+      case HabitCategory.learning:
+        return Colors.purple;
+      case HabitCategory.fitness:
+        return Colors.orange;
+      case HabitCategory.mindfulness:
+        return Colors.teal;
+      case HabitCategory.social:
+        return Colors.pink;
+      case HabitCategory.financial:
+        return Colors.amber;
+      case HabitCategory.creative:
+        return Colors.indigo;
+      case HabitCategory.personal:
+        return Colors.cyan;
+      case HabitCategory.other:
+        return Colors.grey;
+    }
   }
 
   Widget _buildProductivityCard(UserModel user) {

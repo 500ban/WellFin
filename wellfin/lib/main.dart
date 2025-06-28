@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'core/config/firebase_config.dart';
-import 'core/config/google_cloud_config.dart';
 import 'shared/providers/auth_provider.dart';
 import 'shared/providers/user_provider.dart';
 import 'shared/services/android_service.dart';
