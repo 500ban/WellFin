@@ -86,8 +86,8 @@ class LoginPage extends ConsumerWidget {
                           ),
                           SizedBox(height: 16),
                           Text(
-                            '• インテリジェントなスケジュール最適化\n'
-                            '• パーソナライズされた習慣形成サポート\n'
+                            '• スケジュール最適化\n'
+                            '• 習慣形成のサポート\n'
                             '• 自然言語でのタスク管理\n'
                             '• 生産性向上のためのAI分析',
                             style: TextStyle(

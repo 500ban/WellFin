@@ -1,0 +1,849 @@
+openapi: 3.0.3
+info:
+  title: WellFin AI Agent API
+  description: |
+    WellFin Androidアプリ用のAI分析エージェントAPI
+    
+    ## 認証
+    このAPIはAPIキー認証を使用しています。すべてのAPIエンドポイント（/health、/test-aiを除く）で
+    APIキーが必要です。
+    
+    ### 認証方法
+    1. Flutterアプリで環境変数からAPIキーを取得
+    2. APIリクエスト時に`X-API-Key: <api_key>`ヘッダーを付与
+    3. 開発環境では`dev-secret-key`を使用
+    
+    ## エンドポイント
+    - **タスク分析**: ユーザー入力のタスクをAI分析し、分析結果とともに実行結果を返す
+    - **スケジュール最適化**: 既存のタスクと新規タスクを考慮してスケジュールを最適化し、実行結果を返す
+    - **推奨事項生成**: ユーザーの行動パターンと目標に基づいて推奨事項を生成し、実行結果を返す
+    
+  version: 2.0.0
+  contact:
+    name: WellFin Development Team
+    email: support@wellfin.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://asia-northeast1-{PROJECT_ID}.cloudfunctions.net/wellfin-ai-function
+    description: Cloud Run Functions (Production)
+  - url: http://localhost:3000
+    description: Development server
+  - url: http://10.0.2.2:3000
+    description: Android Emulator server
+
+paths:
+  /health:
+    get:
+      summary: ヘルスチェック
+      description: APIの健全性を確認するエンドポイント（認証不要）
+      tags:
+        - Health
+      responses:
+        '200':
+          description: APIが正常に動作している
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test-ai:
+    get:
+      summary: Vertex AI接続テスト
+      description: Vertex AIとの接続状態を確認するエンドポイント（認証不要）
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Vertex AI接続が正常
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VertexAITestResponse'
+        '500':
+          description: Vertex AI接続エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/analyze-task:
+    post:
+      summary: タスク分析・実行
+      description: |
+        ユーザー入力のタスクをAI分析し、分析結果とエージェントの実行結果を返します。
+        
+        ### 処理内容
+        1. タスクの優先度評価
+        2. 推定所要時間の算出
+        3. タスクカテゴリの分類
+        4. 複雑さの評価
+        5. 改善提案の生成
+        6. **実行結果の生成（新機能）**
+      tags:
+        - Task Analysis
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeTaskRequest'
+            example:
+              userInput: "プロジェクト計画書作成: 新規プロジェクトの計画書を作成する必要があります。"
+      responses:
+        '200':
+          description: タスク分析・実行完了
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskAnalysisResponse'
+              example:
+                success: true
+                analysis:
+                  title: "プロジェクト計画書作成"
+                  description: "新規プロジェクトの包括的な計画書を作成"
+                  priority: "high"
+                  estimatedDuration: 480
+                  complexity: "medium"
+                  category: "work"
+                  tags: ["プロジェクト管理", "計画書", "文書作成"]
+                  suggestions:
+                    - "プロジェクトのスコープを明確に定義する"
+                    - "マイルストーンとタイムラインを設定する"
+                    - "リスク要因を事前に特定する"
+                execution:
+                  status: "completed"
+                  actions:
+                    - type: "task_created"
+                      description: "新しいタスクを作成しました"
+                      details:
+                        taskId: "task_123"
+                        title: "プロジェクト計画書作成"
+                        priority: "high"
+                    - type: "subtasks_generated"
+                      description: "サブタスクを3つ生成しました"
+                      details:
+                        count: 3
+                        subtasks: ["スコープ定義", "タイムライン作成", "リスク分析"]
+                  recommendations:
+                    - "明日の朝一番に取り組むことをお勧めします"
+                    - "集中できる2時間のブロックを確保してください"
+                metadata:
+                  analyzedAt: "2024-01-15T10:30:00.000Z"
+                  model: "gemini-1.5-flash"
+                  executionTime: 1.2
+        '400':
+          description: リクエストが不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー（APIキーが無効または不足）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/optimize-schedule:
+    post:
+      summary: スケジュール最適化・実行
+      description: |
+        既存のタスクと新規タスクを考慮してスケジュールを最適化し、実行結果を返します。
+        
+        ### 処理内容
+        1. タスクの優先度に基づく並び替え
+        2. 時間効率の最大化
+        3. 休憩時間の適切な配置
+        4. 集中時間ブロックの活用
+        5. **最適化結果の適用（新機能）**
+      tags:
+        - Schedule Optimization
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptimizeScheduleRequest'
+            example:
+              tasks:
+                - title: "プロジェクト計画書作成"
+                  priority: "high"
+                  estimatedDuration: 480
+                  deadline: "2025-07-15"
+                - title: "チーム会議"
+                  priority: "medium"
+                  estimatedDuration: 120
+                  deadline: "2025-07-14"
+              preferences:
+                workHours:
+                  start: "09:00"
+                  end: "18:00"
+                breakTime: 60
+                focusBlocks: 4
+      responses:
+        '200':
+          description: スケジュール最適化・実行完了
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleOptimizationResponse'
+              example:
+                success: true
+                optimizedSchedule:
+                  - id: "task_123"
+                    title: "プロジェクト計画書作成"
+                    startTime: "2025-07-15T09:00:00.000Z"
+                    endTime: "2025-07-15T17:00:00.000Z"
+                    priority: "high"
+                    category: "work"
+                    status: "scheduled"
+                execution:
+                  status: "completed"
+                  actions:
+                    - type: "schedule_updated"
+                      description: "2つのタスクのスケジュールを更新しました"
+                      details:
+                        updatedTasks: 2
+                        totalDuration: 600
+                    - type: "conflicts_resolved"
+                      description: "スケジュール競合を1件解決しました"
+                      details:
+                        conflictsResolved: 1
+                  optimizations:
+                    - "高優先度タスクを午前中に配置"
+                    - "類似タスクをまとめて効率化"
+                summary:
+                  totalTasks: 2
+                  totalDuration: 600
+                  efficiency: 0.85
+                  improvementPercentage: 15
+                metadata:
+                  optimizedAt: "2024-01-15T10:30:00.000Z"
+                  model: "gemini-1.5-flash"
+                  executionTime: 2.1
+        '400':
+          description: リクエストが不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/recommendations:
+    post:
+      summary: 推奨事項生成・実行
+      description: |
+        ユーザーの行動パターンと目標に基づいて推奨事項を生成し、実行結果を返します。
+        
+        ### 処理内容
+        1. 生産性向上のための習慣提案
+        2. 時間管理の改善案
+        3. ワークライフバランスの最適化
+        4. 目標達成のための戦略
+        5. **推奨事項の適用（新機能）**
+      tags:
+        - Recommendations
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationsRequest'
+            example:
+              userProfile:
+                goals: ["生産性向上", "ワークライフバランス改善"]
+                preferences:
+                  workStyle: "morning"
+                  focusDuration: 90
+              context:
+                currentTasks: ["プロジェクトA進行中", "チーム会議準備"]
+                recentActivity: ["朝の運動習慣", "読書時間確保"]
+      responses:
+        '200':
+          description: 推奨事項生成・実行完了
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsResponse'
+              example:
+                success: true
+                recommendations:
+                  - id: "rec_123"
+                    type: "productivity"
+                    title: "朝の集中時間を活用"
+                    description: "朝の2時間を最も重要なタスクに充てることで、生産性が30%向上する可能性があります"
+                    priority: "high"
+                    actionable: true
+                    estimatedImpact: "high"
+                    status: "applied"
+                execution:
+                  status: "completed"
+                  actions:
+                    - type: "habit_created"
+                      description: "新しい習慣「朝の集中時間」を作成しました"
+                      details:
+                        habitId: "habit_456"
+                        title: "朝の集中時間"
+                        frequency: "daily"
+                    - type: "schedule_adjusted"
+                      description: "朝の時間帯にタスクを移動しました"
+                      details:
+                        adjustedTasks: 3
+                  improvements:
+                    - "予想生産性向上: 30%"
+                    - "ストレス軽減効果: 高"
+                insights:
+                  productivityTrend: "improving"
+                  focusAreas: ["時間管理", "優先度設定"]
+                  nextSteps: ["習慣の継続", "効果測定"]
+                metadata:
+                  generatedAt: "2024-01-15T10:30:00.000Z"
+                  model: "gemini-1.5-flash"
+                  executionTime: 1.8
+        '400':
+          description: リクエストが不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        APIキー認証
+        
+        ### 取得方法
+        1. Flutterアプリで環境変数からAPIキーを取得
+        2. `X-API-Key: <api_key>`ヘッダーで送信
+        3. 開発環境では`dev-secret-key`を使用
+        
+        ### 例
+        ```
+        X-API-Key: dev-secret-key
+        X-API-Key: your-production-api-key
+        ```
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        version:
+          type: string
+          example: "2.0.0"
+        environment:
+          type: string
+          example: "production"
+        service:
+          type: string
+          example: "WellFin AI Agent API"
+
+    VertexAITestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Vertex AI接続成功フラグ
+          example: true
+        project:
+          type: string
+          description: GCPプロジェクトID
+          example: "your-project-id"
+        location:
+          type: string
+          description: Vertex AIのリージョン
+          example: "asia-northeast1"
+        model:
+          type: string
+          description: 使用中のAIモデル
+          example: "gemini-1.5-flash"
+        result:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "success"
+            message:
+              type: string
+              example: "Vertex AI connection is working"
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00.000Z"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        service:
+          type: string
+          example: "WellFin AI Agent API"
+
+    AnalyzeTaskRequest:
+      type: object
+      required:
+        - userInput
+      properties:
+        userInput:
+          type: string
+          description: ユーザーのタスク入力（タイトル: 説明の形式）
+          example: "プロジェクト計画書作成: 新規プロジェクトの計画書を作成する必要があります。"
+
+    TaskAnalysisResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 処理成功フラグ
+          example: true
+        analysis:
+          type: object
+          properties:
+            title:
+              type: string
+              description: タスクタイトル
+              example: "プロジェクト計画書作成"
+            description:
+              type: string
+              description: タスクの詳細説明
+              example: "新規プロジェクトの包括的な計画書を作成"
+            category:
+              type: string
+              description: タスクカテゴリ
+              example: "work"
+            priority:
+              type: string
+              enum: [low, medium, high, urgent]
+              description: 分析された優先度
+              example: "high"
+            estimatedDuration:
+              type: integer
+              description: 推定所要時間（分）
+              example: 480
+            complexity:
+              type: string
+              enum: [easy, medium, hard]
+              description: タスクの複雑さ
+              example: "medium"
+            tags:
+              type: array
+              items:
+                type: string
+              description: 関連タグ
+              example: ["プロジェクト管理", "計画書", "文書作成"]
+            suggestions:
+              type: array
+              items:
+                type: string
+              description: AIによる改善提案
+              example: ["プロジェクトのスコープを明確に定義する", "マイルストーンとタイムラインを設定する"]
+        execution:
+          $ref: '#/components/schemas/ExecutionResult'
+        metadata:
+          type: object
+          properties:
+            analyzedAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00.000Z"
+            model:
+              type: string
+              example: "gemini-1.5-flash"
+            executionTime:
+              type: number
+              format: float
+              description: 実行時間（秒）
+              example: 1.2
+
+    OptimizeScheduleRequest:
+      type: object
+      required:
+        - tasks
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskInput'
+          description: 最適化対象のタスクリスト
+        preferences:
+          type: object
+          properties:
+            workHours:
+              type: object
+              properties:
+                start:
+                  type: string
+                  format: time
+                  example: "09:00"
+                end:
+                  type: string
+                  format: time
+                  example: "18:00"
+            breakTime:
+              type: integer
+              description: 休憩時間（分）
+              example: 60
+            focusBlocks:
+              type: integer
+              description: 集中時間ブロック数
+              example: 4
+
+    TaskInput:
+      type: object
+      required:
+        - title
+        - priority
+        - estimatedDuration
+      properties:
+        title:
+          type: string
+          example: "プロジェクト計画書作成"
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          example: "high"
+        estimatedDuration:
+          type: integer
+          description: 推定所要時間（分）
+          example: 480
+        deadline:
+          type: string
+          format: date
+          example: "2025-07-15"
+        category:
+          type: string
+          example: "work"
+
+    ScheduleOptimizationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 処理成功フラグ
+          example: true
+        optimizedSchedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduledTask'
+          description: 最適化されたスケジュール
+        execution:
+          $ref: '#/components/schemas/ExecutionResult'
+        summary:
+          type: object
+          properties:
+            totalTasks:
+              type: integer
+              description: 総タスク数
+              example: 5
+            totalDuration:
+              type: integer
+              description: 総所要時間（分）
+              example: 480
+            efficiency:
+              type: number
+              format: float
+              description: スケジュール効率（0-1）
+              example: 0.85
+            improvementPercentage:
+              type: number
+              format: float
+              description: 改善率（%）
+              example: 15
+        metadata:
+          type: object
+          properties:
+            optimizedAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00.000Z"
+            model:
+              type: string
+              example: "gemini-1.5-flash"
+            executionTime:
+              type: number
+              format: float
+              description: 実行時間（秒）
+              example: 2.1
+
+    ScheduledTask:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "task_123"
+        title:
+          type: string
+          example: "プロジェクト計画書作成"
+        startTime:
+          type: string
+          format: date-time
+          example: "2025-07-15T09:00:00.000Z"
+        endTime:
+          type: string
+          format: date-time
+          example: "2025-07-15T17:00:00.000Z"
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          example: "high"
+        category:
+          type: string
+          example: "work"
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+          example: "scheduled"
+
+    RecommendationsRequest:
+      type: object
+      properties:
+        userProfile:
+          type: object
+          properties:
+            goals:
+              type: array
+              items:
+                type: string
+              description: ユーザーの目標
+              example: ["生産性向上", "ワークライフバランス改善"]
+            preferences:
+              type: object
+              properties:
+                workStyle:
+                  type: string
+                  enum: [morning, afternoon, evening, flexible]
+                  example: "morning"
+                focusDuration:
+                  type: integer
+                  description: 集中可能時間（分）
+                  example: 90
+        context:
+          type: object
+          properties:
+            currentTasks:
+              type: array
+              items:
+                type: string
+              description: 現在のタスク状況
+              example: ["プロジェクトA進行中", "チーム会議準備"]
+            recentActivity:
+              type: array
+              items:
+                type: string
+              description: 最近の活動
+              example: ["朝の運動習慣", "読書時間確保"]
+
+    RecommendationsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 処理成功フラグ
+          example: true
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+          description: 推奨事項リスト
+        execution:
+          $ref: '#/components/schemas/ExecutionResult'
+        insights:
+          type: object
+          properties:
+            productivityTrend:
+              type: string
+              enum: [improving, stable, declining]
+              example: "improving"
+            focusAreas:
+              type: array
+              items:
+                type: string
+              description: 改善すべき領域
+              example: ["時間管理", "優先度設定"]
+            nextSteps:
+              type: array
+              items:
+                type: string
+              description: 次のステップ
+              example: ["習慣の継続", "効果測定"]
+        metadata:
+          type: object
+          properties:
+            generatedAt:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00.000Z"
+            model:
+              type: string
+              example: "gemini-1.5-flash"
+            executionTime:
+              type: number
+              format: float
+              description: 実行時間（秒）
+              example: 1.8
+
+    Recommendation:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "rec_123"
+        type:
+          type: string
+          enum: [task, habit, schedule, productivity]
+          example: "productivity"
+        title:
+          type: string
+          example: "朝の集中時間を活用"
+        description:
+          type: string
+          example: "朝の2時間を最も重要なタスクに充てることで、生産性が30%向上する可能性があります"
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+        actionable:
+          type: boolean
+          example: true
+        estimatedImpact:
+          type: string
+          enum: [low, medium, high]
+          example: "high"
+        status:
+          type: string
+          enum: [generated, applied, in_progress, completed]
+          example: "applied"
+
+    ExecutionResult:
+      type: object
+      description: エージェントの実行結果
+      properties:
+        status:
+          type: string
+          enum: [completed, partial, failed]
+          description: 実行ステータス
+          example: "completed"
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionAction'
+          description: 実行されたアクション
+        recommendations:
+          type: array
+          items:
+            type: string
+          description: 実行に関する推奨事項
+          example: ["明日の朝一番に取り組むことをお勧めします"]
+        optimizations:
+          type: array
+          items:
+            type: string
+          description: 最適化された内容
+          example: ["高優先度タスクを午前中に配置"]
+        improvements:
+          type: array
+          items:
+            type: string
+          description: 改善効果
+          example: ["予想生産性向上: 30%"]
+
+    ExecutionAction:
+      type: object
+      description: 実行されたアクション
+      properties:
+        type:
+          type: string
+          enum: [task_created, task_updated, schedule_updated, habit_created, conflicts_resolved, subtasks_generated, schedule_adjusted]
+          description: アクションタイプ
+          example: "task_created"
+        description:
+          type: string
+          description: アクションの説明
+          example: "新しいタスクを作成しました"
+        details:
+          type: object
+          description: アクションの詳細情報
+          additionalProperties: true
+          example:
+            taskId: "task_123"
+            title: "プロジェクト計画書作成"
+            priority: "high"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: エラーメッセージ
+          example: "Invalid request parameters"
+        code:
+          type: string
+          description: エラーコード
+          example: "INVALID_PARAMETERS"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+tags:
+  - name: Health
+    description: ヘルスチェック関連（認証不要）
+  - name: Task Analysis
+    description: タスク分析・実行関連（認証必須）
+  - name: Schedule Optimization
+    description: スケジュール最適化・実行関連（認証必須）
+  - name: Recommendations
+    description: 推奨事項生成・実行関連（認証必須） 

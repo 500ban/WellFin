@@ -28,6 +28,19 @@
 - [第4部：ユースケース・実装計画](./servise/04_implementation.md)
 - [第5部：開発ガイドライン・参考資料](./servise/05_guideline.md)
 
+#### [API仕様書（OpenAPI 3.0）](../functions/docs/openapi.yaml)
+**概要**: Cloud Run Functions AI Agent APIの完全な技術仕様書
+**内容**:
+- 5つのAPIエンドポイント詳細仕様
+- リクエスト・レスポンススキーマ定義
+- 認証方式（APIキー認証）
+- エラーハンドリング仕様
+- 使用例・サンプルコード
+- Vertex AI Gemini Pro統合仕様
+
+**実装状況**: ✅ 100%実装完了（Node.js 22 LTS + Express）
+**テスト環境**: `https://asia-northeast1-[PROJECT-ID].cloudfunctions.net/wellfin-ai-function`
+
 #### [リリースノート](./release_notes.md)
 **概要**: 各バージョンのリリース情報と変更履歴
 **内容**:
@@ -39,6 +52,22 @@
 - 既知の問題
 - 次のリリース予定
 - パフォーマンス・セキュリティ情報
+
+### 🔐 開発・セキュリティガイド
+
+#### [guide](./guide/) ディレクトリ内の開発ガイド集
+**概要**: 開発者向けの詳細ガイドとベストプラクティス集
+**配置場所**:
+
+##### [APIキー管理ガイド](./guide/api-key-management.md)
+**概要**: セキュリティベストプラクティスとAPIキー管理の完全ガイド
+**内容**:
+- 環境別APIキー管理（development/staging/production）
+- Flutter・Node.js・Terraformの実装例
+- セキュリティベストプラクティス
+- CI/CD設定例（GitHub Actions等）
+- トラブルシューティング
+- チェックリスト
 
 ### 🚀 運用・デプロイドキュメント
 
@@ -92,6 +121,7 @@
    - `servise/README.md` → 各種ドキュメントの内容把握
    - `servise/01_overview.md` → 実装状況確認
    - `servise/02_architecture.md` → アーキテクチャ・データベース設計確認
+   - `../functions/docs/openapi.yaml` → API仕様詳細確認
    - `servise/03_operations.md` → ユースケース確認
    - `servise/04_implementation.md` → 実装計画確認
    - `servise/05_guideline.md` → 開発ガイドライン確認
@@ -100,13 +130,22 @@
    - `develop_trouble.md` → 既知の問題確認
    - `release_notes.md` → 既知の問題確認
 
-3. **ドキュメント更新時**
+3. **API開発・AI Agent機能作業時**
+   - `../functions/docs/openapi.yaml` → API仕様詳細確認
+   - `guide/api-key-management.md` → APIキー管理・認証方式確認
+   - `servise/02_architecture.md` → AI Agent・セキュリティアーキテクチャ確認
+
+4. **セキュリティ・APIキー関連作業時**
+   - `guide/api-key-management.md` → APIキー管理・セキュリティベストプラクティス確認
+   - `servise/02_architecture.md` → セキュリティアーキテクチャ確認
+
+5. **ドキュメント更新時**
    - `servise/README.md` → 全体構成確認
    - 対応する`servise/`内ファイル → 詳細内容確認
 
-4. **リリース準備時**
+6. **リリース準備時**
    - `release_notes.md` → 変更履歴確認
    - `deploy.md` → デプロイ手順確認
 
-**最終更新**: 2025年6月28日  
+**最終更新**: 2025年6月29日 - guide/ディレクトリ追加、APIキー管理ガイド移動  
 **次回更新予定**: doc配下にドキュメントを追加する場合

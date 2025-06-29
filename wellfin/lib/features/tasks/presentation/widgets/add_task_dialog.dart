@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/task.dart';
 import '../providers/task_provider.dart';
+import '../../../../shared/services/ai_agent_service.dart';
 
 /// タスク追加ダイアログ
 class AddTaskDialog extends ConsumerStatefulWidget {
@@ -27,50 +28,158 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
   final List<SubTask> _subTasks = [];
   final _subTaskController = TextEditingController();
 
+  // AI分析関連
+  final _aiInputController = TextEditingController();
+  bool _isAiAnalyzing = false;
+  bool _hasAiAnalyzed = false;
+
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     _subTaskController.dispose();
+    _aiInputController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 500),
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 固定ヘッダー
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.add_task,
+                      color: Colors.blue[600],
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '新しいタスク',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                        Text(
+                          'AIが分析をサポートします',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_hasAiAnalyzed)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green[100],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('新しいタスク', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              Form(
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green[600],
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'AI分析済み',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            
+            // スクロール可能なコンテンツ
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
                 key: _formKey,
                 child: _buildFormFields(),
               ),
-              const SizedBox(height: 24),
-              Row(
+              ),
+            ),
+            
+            // 固定フッター（ボタン）
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+                border: Border(
+                  top: BorderSide(color: Colors.grey[300]!),
+                ),
+              ),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('キャンセル'),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
                     onPressed: _createTask,
-                    child: const Text('作成'),
-                  ),
-                ],
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text('作成'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
               ),
             ],
           ),
+            ),
+          ],
         ),
       ),
     );
@@ -80,6 +189,10 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // AI分析セクション
+        _buildAiAnalysisSection(),
+        const SizedBox(height: 24),
+        
         // タイトル
         TextFormField(
           controller: _titleController,
@@ -386,5 +499,239 @@ class _AddTaskDialogState extends ConsumerState<AddTaskDialog> {
     setState(() {
       _subTasks.removeAt(index);
     });
+  }
+
+  Widget _buildAiAnalysisSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.psychology,
+                color: Colors.blue[600],
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'AI分析',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue[700],
+                ),
+              ),
+              const Spacer(),
+              if (_hasAiAnalyzed)
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green[600],
+                  size: 20,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '自然言語でタスクを入力すると、AIが詳細を自動分析します',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.blue[600],
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _aiInputController,
+            decoration: InputDecoration(
+              hintText: '例: 明日までにプレゼン資料を作成する',
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              suffixIcon: _isAiAnalyzing
+                  ? Container(
+                      width: 20,
+                      height: 20,
+                      padding: const EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+                      ),
+                    )
+                  : IconButton(
+                      icon: Icon(Icons.auto_awesome, color: Colors.blue[600]),
+                      onPressed: _aiInputController.text.trim().isNotEmpty && !_isAiAnalyzing
+                          ? _analyzeWithAi
+                          : null,
+                      tooltip: 'AI分析',
+                    ),
+            ),
+            maxLines: 2,
+            onChanged: (value) {
+              setState(() {}); // ボタンの有効化/無効化のため
+            },
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty && !_isAiAnalyzing) {
+                _analyzeWithAi();
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          if (_hasAiAnalyzed) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green[600],
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'AI分析が完了しました。内容を確認してください。',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _analyzeWithAi() async {
+    final input = _aiInputController.text.trim();
+    if (input.isEmpty) return;
+
+    setState(() {
+      _isAiAnalyzing = true;
+    });
+
+    try {
+      final result = await AIAgentService.analyzeTask(userInput: input);
+      
+      // 分析結果でフォームフィールドを更新
+      setState(() {
+        _titleController.text = result.title;
+        _descriptionController.text = result.description;
+        _estimatedDuration = result.estimatedDuration;
+        
+        // 優先度の変換
+        switch (result.priority.toLowerCase()) {
+          case 'low':
+          case '1':
+            _selectedPriority = TaskPriority.low;
+            break;
+          case 'medium':
+          case '2':
+          case '3':
+            _selectedPriority = TaskPriority.medium;
+            break;
+          case 'high':
+          case '4':
+            _selectedPriority = TaskPriority.high;
+            break;
+          case 'urgent':
+          case '5':
+            _selectedPriority = TaskPriority.urgent;
+            break;
+          default:
+            _selectedPriority = TaskPriority.medium;
+        }
+        
+        // 複雑さの変換
+        switch (result.complexity.toLowerCase()) {
+          case 'easy':
+          case 'simple':
+            _selectedDifficulty = TaskDifficulty.easy;
+            break;
+          case 'medium':
+          case 'moderate':
+            _selectedDifficulty = TaskDifficulty.medium;
+            break;
+          case 'hard':
+          case 'difficult':
+            _selectedDifficulty = TaskDifficulty.hard;
+            break;
+          case 'expert':
+          case 'complex':
+            _selectedDifficulty = TaskDifficulty.expert;
+            break;
+          default:
+            _selectedDifficulty = TaskDifficulty.medium;
+        }
+        
+        // タグからサブタスクを生成（オプション）
+        if (result.suggestions.isNotEmpty) {
+          _subTasks.clear();
+          for (int i = 0; i < result.suggestions.length && i < 3; i++) {
+            _subTasks.add(SubTask(
+              id: DateTime.now().millisecondsSinceEpoch.toString() + '_$i',
+              title: result.suggestions[i],
+            ));
+          }
+        }
+        
+        _hasAiAnalyzed = true;
+        _isAiAnalyzing = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('AI分析が完了しました！内容を確認してください。'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isAiAnalyzing = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('AI分析に失敗しました: ${e.toString()}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 } 

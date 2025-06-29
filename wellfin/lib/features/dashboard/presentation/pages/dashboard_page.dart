@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/providers/auth_provider.dart';
+import '../../../../shared/services/ai_agent_service.dart';
 import '../../../tasks/presentation/pages/task_list_page.dart';
 import '../../../tasks/presentation/providers/task_provider.dart';
 import '../../../tasks/domain/entities/task.dart';
@@ -12,6 +14,59 @@ import '../../../habits/presentation/providers/habit_provider.dart';
 import '../../../habits/domain/entities/habit.dart';
 import '../../../goals/presentation/pages/goal_list_page.dart';
 import '../../../goals/presentation/providers/goal_provider.dart';
+import '../../../ai_agent/presentation/pages/ai_agent_test_page.dart';
+
+// AI推奨状態管理のProvider
+final aiRecommendationsProvider = StateNotifierProvider<AIRecommendationsNotifier, AsyncValue<RecommendationsResult?>>((ref) {
+  return AIRecommendationsNotifier();
+});
+
+class AIRecommendationsNotifier extends StateNotifier<AsyncValue<RecommendationsResult?>> {
+  AIRecommendationsNotifier() : super(const AsyncValue.data(null));
+
+  Future<void> loadRecommendations({
+    Map<String, dynamic>? userProfile,
+    Map<String, dynamic>? context,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await AIAgentService.getRecommendations(
+        userProfile: userProfile,
+        context: context,
+      );
+      state = AsyncValue.data(result);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  void clearRecommendations() {
+    state = const AsyncValue.data(null);
+  }
+}
+
+// AI分析状態管理のProvider
+final aiAnalysisProvider = StateNotifierProvider<AIAnalysisNotifier, AsyncValue<TaskAnalysisResult?>>((ref) {
+  return AIAnalysisNotifier();
+});
+
+class AIAnalysisNotifier extends StateNotifier<AsyncValue<TaskAnalysisResult?>> {
+  AIAnalysisNotifier() : super(const AsyncValue.data(null));
+
+  Future<void> analyzeTask(String userInput) async {
+    state = const AsyncValue.loading();
+    try {
+      final result = await AIAgentService.analyzeTask(userInput: userInput);
+      state = AsyncValue.data(result);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  void clearAnalysis() {
+    state = const AsyncValue.data(null);
+  }
+}
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -29,7 +84,43 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ref.read(taskProvider.notifier).loadTasks();
       ref.read(habitProvider.notifier).loadTodayHabits();
       ref.read(goalNotifierProvider.notifier).loadGoals();
+      
+      // AI推奨事項も取得
+      _loadAIRecommendations();
     });
+  }
+
+  void _loadAIRecommendations() async {
+    try {
+      print('AI推奨事項の取得を開始: APIキー認証方式');
+      
+      final userData = ref.read(currentUserDataProvider);
+      userData.whenData((userModel) {
+        if (userModel != null) {
+          final userProfile = {
+            'goals': ['生産性向上', 'ワークライフバランス改善'],
+            'preferences': {
+              'workStyle': 'morning',
+              'focusDuration': 90,
+            },
+          };
+          
+          final context = {
+            'currentTasks': ['日常業務', 'プロジェクト推進'],
+            'recentActivity': ['朝の運動習慣', '読書時間確保'],
+          };
+          
+          ref.read(aiRecommendationsProvider.notifier).loadRecommendations(
+            userProfile: userProfile,
+            context: context,
+          );
+        } else {
+          print('AI推奨事項の取得をスキップ: ユーザーデータが未取得');
+        }
+      });
+    } catch (e) {
+      print('AI推奨事項の読み込みでエラー: $e');
+    }
   }
 
   @override
@@ -136,6 +227,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           
           // AI推奨セクション
           _buildAIRecommendationsCard(),
+          const SizedBox(height: 24),
+          
+          // スケジュール最適化セクション
+          _buildScheduleOptimizationCard(),
           const SizedBox(height: 24),
           
           // 習慣トラッキング
@@ -622,6 +717,44 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
               ],
             ),
+            
+            const SizedBox(height: 12),
+            
+                              // デバッグ情報（開発環境のみ）
+            if (const bool.fromEnvironment('dart.vm.product') == false) ...[
+              const SizedBox(height: 12),
+            Row(
+              children: [
+                  Expanded(
+                    child: _buildQuickAccessItem(
+                      'API接続テスト',
+                      Icons.network_check,
+                      Colors.teal,
+                      () {
+                        _showApiConnectionDialog();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                Expanded(
+                  child: _buildQuickAccessItem(
+                    'AIテスト',
+                    Icons.psychology,
+                    Colors.blue,
+                    () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AIAgentTestPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: SizedBox()), // 空のスペース
+              ],
+            ),
+            ],
           ],
         ),
       ),
@@ -692,62 +825,181 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 IconButton(
                   icon: const Icon(Icons.refresh),
                   onPressed: () {
-                    // AI推奨を更新
+                    _loadAIRecommendations();
                   },
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
-              '今日の生産性を向上させるための提案',
+            
+            Consumer(
+              builder: (context, ref, child) {
+                final aiRecommendationsState = ref.watch(aiRecommendationsProvider);
+                
+                return aiRecommendationsState.when(
+                  data: (result) {
+                    if (result == null) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              '今日の生産性を向上させるためのAI提案を準備中...',
               style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 16),
+                            CircularProgressIndicator(),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AIが${result.recommendations.length}つの推奨事項を分析しました',
+                          style: const TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
               ),
             ),
             const SizedBox(height: 12),
-            _buildRecommendationItem(
-              '午前9時から11時は集中力が高い時間帯です。重要なタスクをこの時間に配置することをお勧めします。',
-              Icons.lightbulb,
-              Colors.green,
+                        
+                        // 推奨事項リスト
+                        ...result.recommendations.take(3).map((rec) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _buildAIRecommendationItem(
+                            rec.title,
+                            rec.description,
+                            _getRecommendationIcon(rec.type),
+                            _getRecommendationColor(rec.priority),
+                            rec.estimatedImpact,
+            ),
+                        )),
+                        
+                        // 実行結果の表示
+                        if (result.execution.actions.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.auto_awesome,
+                                      color: Colors.blue,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'AI実行結果: ${result.execution.status}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
             ),
             const SizedBox(height: 8),
-            _buildRecommendationItem(
-              '「運動」の習慣が3日間続いています。今日も継続して健康を維持しましょう。',
-              Icons.fitness_center,
-              Colors.orange,
-            ),
-            const SizedBox(height: 8),
-            Consumer(
-              builder: (context, ref, child) {
-                final goalState = ref.watch(goalNotifierProvider);
-                return goalState.when(
-                  data: (goals) {
-                    final activeGoals = goals.where((g) => g.isInProgress).length;
-                    final overdueGoals = goals.where((g) => g.isOverdue).length;
-                    
-                    if (overdueGoals > 0) {
-                      return _buildRecommendationItem(
-                        '$overdueGoals個の目標が期限切れです。優先度を確認して進捗を更新しましょう。',
-                        Icons.warning,
-                        Colors.purple,
+                                ...result.execution.actions.take(2).map((action) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    '• ${action.description}',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                )),
+                              ],
+                            ),
+                          ),
+                        ],
+                        
+                        // より多くの推奨事項を表示するボタン
+                        if (result.recommendations.length > 3) ...[
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () {
+                              _showAllRecommendations(result);
+                            },
+                            child: Text('他${result.recommendations.length - 3}件の推奨事項を表示'),
+                          ),
+                        ],
+                      ],
                       );
-                    } else if (activeGoals > 0) {
-                      return _buildRecommendationItem(
-                        '$activeGoals個のアクティブな目標があります。定期的に進捗を確認しましょう。',
-                        Icons.flag,
-                        Colors.purple,
-                      );
-                    } else {
-                      return _buildRecommendationItem(
-                        '新しい目標を設定して、より充実した生活を送りましょう。',
-                        Icons.add_task,
-                        Colors.purple,
-                      );
-                    }
                   },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  loading: () => Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'AIが最新の推奨事項を分析中...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 16),
+                        CircularProgressIndicator(),
+          ],
+        ),
+      ),
+                  error: (error, stack) => Column(
+                    children: [
+                      Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+            size: 20,
+          ),
+                            const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+                                'AI推奨の取得に失敗しました: ${error.toString()}',
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                ),
+            ),
+          ),
+        ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () {
+                          _loadAIRecommendations();
+                        },
+                        child: const Text('再試行'),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -757,32 +1009,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildRecommendationItem(String text, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildTodayTasksCard(BuildContext context) {
     return Card(
@@ -806,26 +1033,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ),
                 ),
                 const Spacer(),
-                Consumer(
-                  builder: (context, ref, child) {
-                    final taskState = ref.watch(taskProvider);
-                    return taskState.when(
-                      data: (tasks) {
-                        final todayTasks = tasks.where((task) => task.isToday).toList();
-                        
-                        if (todayTasks.isEmpty) return const SizedBox.shrink();
-                        
-                        return TextButton(
+                TextButton(
                           onPressed: () {
                             _navigateToTaskListWithFilter(TaskFilter.today);
                           },
                           child: const Text('設定'),
-                        );
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    );
-                  },
                 ),
               ],
             ),
@@ -839,35 +1051,110 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     final todayTasks = tasks.where((task) => task.isToday).toList();
                     
                     if (todayTasks.isEmpty) {
+                      // 今日のタスクが最初から存在しない場合
                       return Container(
-                        padding: const EdgeInsets.all(24),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                         decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue[200]!,
+                            width: 1,
+                          ),
                         ),
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 48,
-                              color: Colors.green[400],
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[100],
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.calendar_today_outlined,
+                                size: 32,
+                                color: Colors.blue[600],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              '今日のタスクはありません',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
+                            Text(
+                              '新しいタスクを追加して、\n生産的な一日を始めましょう',
+                              style: TextStyle(
+                                color: Colors.blue[600],
+                                fontSize: 14,
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    // 今日のタスクがすべて完了している場合の判定
+                    final completedTodayTasks = todayTasks.where((t) => t.isCompleted).length;
+                    final allTasksCompleted = completedTodayTasks == todayTasks.length && todayTasks.isNotEmpty;
+                    
+                    if (allTasksCompleted) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.green[100],
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check_circle,
+                                size: 32,
+                                color: Colors.green[600],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             Text(
                               '今日のタスクは完了です！',
                               style: TextStyle(
                                 color: Colors.green[700],
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Text(
-                              '素晴らしい一日でした',
+                              '素晴らしい一日でした\nお疲れ様でした！',
                               style: TextStyle(
                                 color: Colors.green[600],
                                 fontSize: 14,
+                                height: 1.4,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -1853,5 +2140,602 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         onTap: onTap,
       ),
     );
+  }
+
+  // AI推奨事項表示用のヘルパーメソッド
+  Widget _buildAIRecommendationItem(
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+    String impact,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getImpactColor(impact).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  impact.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: _getImpactColor(impact),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getRecommendationIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'productivity':
+        return Icons.trending_up;
+      case 'habit':
+        return Icons.repeat;
+      case 'schedule':
+        return Icons.schedule;
+      case 'goal':
+        return Icons.flag;
+      case 'health':
+        return Icons.health_and_safety;
+      case 'work':
+        return Icons.work;
+      default:
+        return Icons.lightbulb;
+    }
+  }
+
+  Color _getRecommendationColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.green;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Color _getImpactColor(String impact) {
+    switch (impact.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildScheduleOptimizationCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.schedule,
+                  color: Colors.purple,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'スケジュール最適化',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.play_arrow),
+                  onPressed: () {
+                    _optimizeSchedule();
+                  },
+                  tooltip: '最適化実行',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            Consumer(
+              builder: (context, ref, child) {
+                final taskState = ref.watch(taskProvider);
+                
+                return taskState.when(
+                  data: (tasks) {
+                    final uncompletedTasks = tasks.where((t) => !t.isCompleted).toList();
+                    
+                    if (uncompletedTasks.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.purple[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.purple[200]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 32,
+                              color: Colors.purple[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'すべてのタスクが完了しています',
+                              style: TextStyle(
+                                color: Colors.purple[700],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    final todayTasks = uncompletedTasks.where((t) => t.isToday).length;
+                    final upcomingTasks = uncompletedTasks.where((t) => !t.isToday).length;
+                    final highPriorityTasks = uncompletedTasks.where((t) => 
+                      t.priority == TaskPriority.high || t.priority == TaskPriority.urgent
+                    ).length;
+                    
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildOptimizationStatItem(
+                                '今日',
+                                '$todayTasks',
+                                Icons.today,
+                                Colors.purple,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildOptimizationStatItem(
+                                '予定',
+                                '$upcomingTasks',
+                                Icons.schedule,
+                                Colors.purple,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildOptimizationStatItem(
+                                '高優先度',
+                                '$highPriorityTasks',
+                                Icons.priority_high,
+                                Colors.purple,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.purple[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.purple[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.auto_awesome,
+                                color: Colors.purple[600],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'AIがあなたのタスクを分析し、最適なスケジュールを提案します',
+                                  style: TextStyle(
+                                    color: Colors.purple[700],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (error, stack) => Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.red[400],
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'タスクの読み込みに失敗しました',
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptimizationStatItem(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _optimizeSchedule() async {
+    try {
+      final taskState = ref.read(taskProvider);
+      await taskState.when(
+        data: (tasks) async {
+          final uncompletedTasks = tasks.where((t) => !t.isCompleted).toList();
+          
+          if (uncompletedTasks.isEmpty) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('最適化するタスクがありません'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            return;
+          }
+          
+          // タスクデータを準備
+          final taskData = uncompletedTasks.map((task) => {
+            'id': task.id,
+            'title': task.title,
+            'priority': task.priority.name,
+            'estimatedDuration': task.estimatedDuration,
+            'scheduledDate': task.scheduledDate.toIso8601String(),
+            'difficulty': task.difficulty.name,
+          }).toList();
+          
+          // スケジュール最適化APIを呼び出し
+          final result = await AIAgentService.optimizeSchedule(
+            tasks: taskData,
+            preferences: {
+              'workHours': {
+                'start': '09:00',
+                'end': '18:00',
+              },
+              'breakTime': 60,
+              'focusBlocks': 4,
+            },
+          );
+          
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('スケジュールを最適化しました（${result.optimizedSchedule.length}件のタスク）'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: '確認',
+                  onPressed: () {
+                    _navigateToTaskListWithFilter(TaskFilter.all);
+                  },
+                ),
+              ),
+            );
+          }
+        },
+        loading: () {},
+        error: (_, __) {},
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('スケジュール最適化に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showAllRecommendations(RecommendationsResult result) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // ハンドル
+            Container(
+              margin: const EdgeInsets.only(top: 16),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // タイトル
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Icon(Icons.psychology, size: 28, color: Colors.green),
+                  const SizedBox(width: 16),
+                  Text(
+                    'AI推奨事項 (${result.recommendations.length}件)',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 推奨事項リスト
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: result.recommendations.length,
+                itemBuilder: (context, index) {
+                  final rec = result.recommendations[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildAIRecommendationItem(
+                      rec.title,
+                      rec.description,
+                      _getRecommendationIcon(rec.type),
+                      _getRecommendationColor(rec.priority),
+                      rec.estimatedImpact,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showApiConnectionDialog() async {
+    // API接続と認証状態をテストするダイアログを表示
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('API接続テスト'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('接続テストを実行中...'),
+            SizedBox(height: 16),
+            CircularProgressIndicator(),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('閉じる'),
+          ),
+        ],
+      ),
+    );
+    
+    try {
+      // 1. Firebase認証状態をチェック
+      final authStatus = await AIAgentService.checkAuthStatus();
+      
+      // 2. API接続をテスト
+      final healthCheck = await AIAgentService.healthCheck();
+      
+      // 3. 結果をダイアログで表示
+      if (context.mounted) {
+        Navigator.of(context).pop(); // ローディングダイアログを閉じる
+        
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('API接続テスト結果'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                                      const Text(
+                      '認証状態:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('✅ 認証方式: ${authStatus['authMethod']}'),
+                    Text('✅ APIキー設定: ${authStatus['apiKeySet']}'),
+                    Text('✅ APIキー長: ${authStatus['apiKeyLength']}文字'),
+                    Text('✅ デフォルトキー: ${authStatus['isDefaultKey']}'),
+                    Text('✅ 有効なキー: ${authStatus['isValidKey']}'),
+                    if (authStatus['error'] != null) 
+                      Text('❌ エラー: ${authStatus['error']}'),
+                  
+                  const SizedBox(height: 16),
+                  
+                  const Text(
+                    'API接続:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text('✅ ヘルスチェック: ${healthCheck ? "成功" : "失敗"}'),
+                  Text('✅ ベースURL: ${AIAgentService.currentBaseUrl}'),
+                  Text('✅ プラットフォーム: ${Platform.operatingSystem}'),
+                  
+                  const SizedBox(height: 16),
+                  
+                  if (!authStatus['apiKeySet'] || !healthCheck)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: const Text(
+                        '問題が検出されました。ログアウト後に再ログインを試してください。',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('閉じる'),
+              ),
+              if (!authStatus['apiKeySet'] || authStatus['isDefaultKey'] == true)
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('アプリを再起動して適切なAPIキーを設定してください'),
+                          backgroundColor: Colors.orange,
+                          duration: Duration(seconds: 5),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('APIキー設定'),
+                ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // ローディングダイアログを閉じる
+        
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('テストエラー'),
+            content: Text('接続テスト中にエラーが発生しました:\n$e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('閉じる'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 } 

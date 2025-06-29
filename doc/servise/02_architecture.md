@@ -307,48 +307,289 @@ class TaskLocation {
 }
 ```
 
+#### 6.2.3 目標管理モデル（実装済み・2025年6月29日最新）
+
+**Goal エンティティ**
+```dart
+class Goal {
+  final String id;
+  final String title;
+  final String description;
+  final DateTime createdAt;
+  final DateTime startDate;
+  final DateTime targetDate;
+  final GoalCategory category;
+  final GoalPriority priority;
+  final GoalStatus status;
+  final GoalType type;
+  final double progress; // 0.0 - 1.0
+  final double? targetValue;
+  final String? unit;
+  final String color;
+  final List<Milestone> milestones;
+  final List<GoalProgress> progressHistory;
+  final List<String> tags;
+  final String? iconName;
+  final String? notes;
+  final bool isArchived;
+}
+```
+
+**Milestone エンティティ**
+```dart
+class Milestone {
+  final String id;
+  final String title;
+  final String? description;
+  final DateTime targetDate;
+  final bool isCompleted;
+  final DateTime? completedAt;
+  final double? targetValue;
+  final String? unit;
+  final int order;
+}
+```
+
+**GoalProgress エンティティ**
+```dart
+class GoalProgress {
+  final String id;
+  final DateTime date;
+  final double progress; // 0.0 - 1.0
+  final double? currentValue;
+  final String? notes;
+  final DateTime createdAt;
+}
+```
+
+**目標カテゴリ（GoalCategory）**
+- personal: 個人
+- health: 健康
+- career: 仕事
+- learning: 学習
+- fitness: フィットネス
+- financial: 財務
+- creative: 創造性
+- other: その他
+
+**目標優先度（GoalPriority）**
+- low: 低
+- medium: 中
+- high: 高
+- critical: 最重要
+
+**目標ステータス（GoalStatus）**
+- active: アクティブ
+- paused: 一時停止
+- completed: 完了
+- cancelled: キャンセル
+- overdue: 期限切れ
+
+**目標タイプ（GoalType）**
+- general: 一般目標
+- numeric: 数値目標
+- milestone: マイルストーン型
+
+**Firestore データ構造**
+```json
+{
+  "users": {
+    "userId": {
+      "goals": {
+        "goalId": {
+          "id": "goalId",
+          "title": "目標名",
+          "description": "説明",
+          "createdAt": "2024-01-01T00:00:00Z",
+          "startDate": "2024-01-01T00:00:00Z",
+          "targetDate": "2024-12-31T00:00:00Z",
+          "category": "fitness",
+          "priority": "high",
+          "status": "active",
+          "type": "numeric",
+          "progress": 0.3,
+          "targetValue": 10.0,
+          "unit": "kg",
+          "color": "#9C27B0",
+          "milestones": {
+            "milestoneId": {
+              "id": "milestoneId",
+              "title": "マイルストーン名",
+              "targetDate": "2024-06-30T00:00:00Z",
+              "isCompleted": false,
+              "targetValue": 5.0,
+              "order": 1
+            }
+          },
+          "progressHistory": {
+            "progressId": {
+              "id": "progressId",
+              "date": "2024-06-15T00:00:00Z",
+              "progress": 0.3,
+              "currentValue": 3.0,
+              "notes": "進捗メモ"
+            }
+          },
+          "tags": ["健康", "フィットネス"],
+          "isArchived": false
+        }
+      }
+    }
+  }
+}
+```
+
 ### 6.3 システムアーキテクチャと開発計画
 
-#### 6.3.1 アーキテクチャ設計（ハッカソン要件対応）
+#### 6.3.1 実装済みアーキテクチャ（2025年6月29日現在）
+
+**完全実装済み機能**
+- ✅ AI Agent機能: Cloud Run Functions API統合
+- ✅ 目標管理機能: 完全なUI/UX実装  
+- ✅ Infrastructure as Code: Terraform 100%自動化
+- ✅ セキュリティ強化: 機密情報保護・環境変数管理
 
 **クリーンアーキテクチャ実装**
 ```
 lib/
 ├── core/                    # 共通機能
 │   ├── config/             # 設定ファイル
-│   ├── constants/          # 定数定義
+│   ├── constants/          # 定数定義  
 │   ├── errors/             # エラーハンドリング
 │   ├── network/            # ネットワーク層
 │   └── utils/              # ユーティリティ
 ├── features/               # 機能別モジュール
-│   ├── auth/              # 認証機能
+│   ├── auth/              # 認証機能 ✅ (7.7KB, 206行)
 │   │   ├── data/          # データ層
 │   │   ├── domain/        # ドメイン層
 │   │   └── presentation/  # プレゼンテーション層
-│   ├── habits/            # 習慣管理
-│   ├── tasks/             # タスク管理
-│   ├── goals/             # 目標管理
-│   ├── calendar/          # カレンダー機能
-│   ├── analytics/         # 分析機能
-│   └── ai_agent/          # AIエージェント
-└── shared/                # 共有コンポーネント
-    ├── models/            # 共有モデル
-    ├── providers/         # 状態管理
-    ├── services/          # 共有サービス
-    └── widgets/           # 共有ウィジェット
+│   ├── habits/            # 習慣管理 ✅ (52KB, 1427行)
+│   ├── tasks/             # タスク管理 ✅ (9KB + 5ウィジェット)
+│   ├── goals/             # 目標管理 ✅ (12KB + 5ウィジェット)
+│   ├── ai_agent/          # AIエージェント ✅ (12KB, 366行)
+│   ├── calendar/          # カレンダー機能 ❌ (未実装)
+│   └── analytics/         # 分析機能 ❌ (未実装)
+├── shared/                # 共有コンポーネント
+│   ├── models/            # 共有モデル
+│   ├── providers/         # 状態管理 ✅ (Riverpod完全実装)
+│   ├── services/          # 共有サービス ✅ (AI Agent含む)
+│   └── widgets/           # 共有ウィジェット
+└── functions/             # Cloud Run Functions API ✅
+    ├── src/index.js       # メインエントリーポイント (534行)
+    ├── services/          # AI Service (Vertex AI Gemini統合)
+    └── routes/            # 5つのAPIエンドポイント
 ```
 
-**レイヤー分離の実装**
-- **Domain Layer**: ビジネスロジックとエンティティ
-- **Data Layer**: データアクセスとリポジトリ実装
-- **Presentation Layer**: UIと状態管理
+#### 6.3.2 Cloud Run Functions API アーキテクチャ（実装済み）
 
-**依存性注入パターン**
-- Riverpodを使用した状態管理
-- Repository Patternによるデータアクセス抽象化
-- Use Case Patternによるビジネスロジック分離
+**API エンドポイント構成**
+```
+https://asia-northeast1-[YOUR-GCP-PROJECT-ID].cloudfunctions.net/wellfin-ai-function/
 
-#### 6.3.2 Google Cloud AI技術の活用戦略
+├── /health                    # ヘルスチェック
+├── /api/v1/vertex-ai-test    # Vertex AI接続テスト
+├── /api/v1/analyze-task      # タスク分析
+├── /api/v1/optimize-schedule # スケジュール最適化
+└── /api/v1/recommendations   # パーソナライズ推奨
+```
+
+**技術スタック**
+- **Runtime**: Node.js 22 LTS
+- **Framework**: @google-cloud/functions-framework@4.0.0
+- **AI統合**: Vertex AI Gemini Pro
+- **認証**: APIキー認証
+- **デプロイ**: Cloud Run Functions Gen2
+
+**AI機能統合アーキテクチャ**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                Flutter App (Frontend) ✅                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │  Dashboard  │  │   Goals     │  │  AI Agent   │         │
+│  │  (99KB)     │  │ Management  │  │  Test Page  │         │
+│  │             │  │ (12KB+5widgets) │  (12KB)     │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│                 Flutter Services Layer ✅                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Auth        │  │ AI Agent    │  │ Goal        │         │
+│  │ Service     │  │ Service     │  │ Provider    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│               Cloud Run Functions API ✅                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Health      │  │ Task        │  │ Schedule    │         │
+│  │ Check       │  │ Analysis    │  │ Optimize    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│                Vertex AI Services ✅                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Gemini Pro  │  │ Natural     │  │ Vector      │         │
+│  │ API         │  │ Language    │  │ Search      │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│            Infrastructure as Code (Terraform) ✅            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ main.tf     │  │ IAM Roles   │  │ Secret      │         │
+│  │ (136行)     │  │ API Keys    │  │ Manager     │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 6.3.3 セキュリティアーキテクチャ（実装済み）
+
+**機密情報管理**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Git Repository (Public) ✅               │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ 機密情報除外: .gitignore設定済み                        │ │
+│  │ - config/development/api-config.json ❌ (Git管理外)    │ │
+│  │ - terraform/terraform.tfvars ❌ (Git管理外)           │ │
+│  │ - プレースホルダー使用: [YOUR-GCP-PROJECT-ID]         │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                ローカル開発環境 (Secure) ✅                 │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ config/development/api-config.json                     │ │
+│  │ {                                                     │ │
+│  │   "apiKey": "[ACTUAL-API-KEY]",                      │ │
+│  │   "apiUrl": "https://...[ACTUAL-PROJECT-ID]...",     │ │
+│  │   "version": "0.3.0"                                 │ │
+│  │ }                                                     │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│              ビルドプロセス (Automated) ✅                  │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ scripts/flutter-build.bat                              │ │
+│  │ ↓                                                     │ │
+│  │ 1. api-config.json読み込み                            │ │
+│  │ 2. 環境変数設定: WELLFIN_API_KEY, WELLFIN_API_URL     │ │
+│  │ 3. flutter build --dart-define=...                   │ │
+│  │ 4. セキュアなAPKビルド完了                             │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Infrastructure as Code 構成**
+```
+terraform/ ✅
+├── main.tf (136行)          # GCPリソース100%管理
+│   ├── Cloud Run Functions  # AI API ホスティング
+│   ├── IAM Roles           # aiplatform.admin 権限
+│   ├── Secret Manager      # APIキー管理
+│   └── Vertex AI APIs      # AI機能有効化
+├── variables.tf            # 変数定義
+├── outputs.tf              # 出力値定義
+├── providers.tf            # GCPプロバイダー設定
+└── terraform.tfvars ❌     # 実際の設定値 (Git管理外)
+```
+
+#### 6.3.4 Google Cloud AI技術の活用戦略
 
 **Vertex AI統合アーキテクチャ**
 ```
@@ -431,4 +672,4 @@ lib/
 
 ---
 
-*最終更新: 2025年6月28日* 
+*最終更新: 2025年6月29日 - AI Agent機能・Infrastructure as Code実装完了* 

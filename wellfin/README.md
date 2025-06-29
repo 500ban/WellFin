@@ -110,6 +110,45 @@ flutter test
 flutter analyze
 ```
 
+### 環境変数設定
+
+アプリでは以下の環境変数を使用して設定をカスタマイズできます：
+
+```bash
+# APIキーを設定（必須）
+flutter run --dart-define=WELLFIN_API_KEY=your-secret-api-key
+
+# 本番環境のAPIベースURLを指定（オプション）
+flutter run --dart-define=PROD_API_BASE_URL=https://your-api-url.com
+
+# リリースビルド時の環境変数設定
+flutter build apk \
+  --dart-define=WELLFIN_API_KEY=your-secret-api-key \
+  --dart-define=PROD_API_BASE_URL=https://wellfin-ai-api-dev-135244043089.asia-northeast1.run.app
+
+# 複数の環境変数を設定
+flutter run \
+  --dart-define=WELLFIN_API_KEY=your-secret-api-key \
+  --dart-define=PROD_API_BASE_URL=https://your-api-url.com \
+  --dart-define=API_VERSION=v1
+```
+
+#### 利用可能な環境変数
+
+- `WELLFIN_API_KEY`: WellFin AI APIのAPIキー（デフォルト: `dev-secret-key`）
+- `PROD_API_BASE_URL`: 本番環境のAPIベースURL（デフォルト: https://wellfin-ai-api-dev-135244043089.asia-northeast1.run.app）
+
+#### APIキー認証について
+
+本アプリは**APIキー認証方式**を採用しており、Firebase認証は使用していません。これにより：
+
+- ✅ **シンプルな認証**: 複雑なOAuth フローが不要
+- ✅ **高速な起動**: 認証トークンの取得待ちが不要
+- ✅ **安定した接続**: ネットワーク環境に依存しない認証
+- ✅ **開発効率**: APIキーの設定のみで即座に利用可能
+
+**重要**: 本番環境では、適切なAPIキーを設定してください。デフォルトの`dev-secret-key`は開発環境専用です。
+
 ## プロジェクト構造
 
 ```

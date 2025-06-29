@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables
+flutter.env
+*.env
+flutter_env.sh
+flutter_env.bat
+config/flutter_config.dev.json
+config/flutter_config.staging.json
+config/flutter_config.prod.json
+
+# WellFin API Configuration (Security)
+config/*/api-config.json
+config/*/flutter.env
+config/*/terraform.tfvars
+*.api-key
+.env.local
+.env.production

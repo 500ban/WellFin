@@ -59,3 +59,29 @@ google-services.json
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.* 
+
+# Terraform specific
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files
+*.tfvars
+
+.env
+.env.local
+.env.production
+.env.staging
+
+# API Key Configuration (SECURITY CRITICAL)
+config/*/api-config.json
+config/*/flutter.env
+config/*/terraform.tfvars
+*.api-key
+api-keys.*
+
+.github/
+node_modules/
+wellfin-local-sa.json

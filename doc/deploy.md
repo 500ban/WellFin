@@ -4,296 +4,243 @@
 このファイルは、WellFinアプリケーションのデプロイ手順とリリースプロセスを記載する実用的なデプロイガイドです。
 開発環境から本番環境への安全なデプロイ設定を管理します。
 
+## 🛠️ 開発・テスト用スクリプト
+
+### スクリプトファイル一覧（scripts/）
+
+#### dev-setup.bat
+**統合開発環境セットアップ**
+- Flutter、Node.js、Google Cloud SDKの環境確認
+- APIキー設定の自動生成（config/development/api-config.json）
+- Flutter依存関係のインストール（pub get）
+- Functions依存関係のインストール（npm install）
+
+```batch
+scripts\dev-setup.bat
+```
+
+#### flutter-dev.bat
+**開発時のFlutter実行**
+- APIキー設定を自動読み込み（config/development/api-config.json）
+- 環境変数でAPIキーとURLを設定
+- 開発モードでFlutterアプリを起動
+
+```batch
+scripts\flutter-dev.bat
+```
+
+#### flutter-build.bat
+**リリース用APKビルド**
+- APIキー設定を自動読み込み（config/development/api-config.json）
+- セキュアな環境変数設定
+- リリース用APKの自動ビルド
+- ビルド成果物: `wellfin\build\app\outputs\flutter-apk\app-release.apk`
+
+```batch
+scripts\flutter-build.bat
+```
+
+#### functions-dev.bat
+**ローカルAPI開発サーバー**
+- Cloud Run Functionsのローカル実行
+- 開発時のAPI動作確認用
+
+```batch
+scripts\functions-dev.bat
+```
+
+#### health-check.bat
+**システムヘルスチェック**
+- API動作確認（/health、/api/v1/vertex-ai-test）
+- Vertex AI認証テスト
+- タスク分析API動作確認
+- Flutter依存関係チェック
+- Functions依存関係確認
+
+```batch
+scripts\health-check.bat
+```
+
+#### setup-api-keys.bat
+**APIキー個別セットアップ**
+- 特定環境のAPIキー設定
+- config/development/api-config.jsonの生成
+
+```batch
+scripts\setup-api-keys.bat development
+```
+
+#### generate-api-keys.js
+**APIキー生成スクリプト**
+- Google Cloud APIキーの自動生成
+- セキュリティ設定の自動適用
+
+```bash
+node scripts\generate-api-keys.js
+```
+
+### 設定ファイル構成
+
+#### config/development/api-config.json
+```json
+{
+  "apiKey": "[YOUR-API-KEY]...", 
+  "apiUrl": "https://asia-northeast1-[YOUR-GCP-PROJECT-ID].cloudfunctions.net/wellfin-ai-function",
+  "version": "0.3.0",
+  "environment": "development"
+}
+```
+
+**セキュリティ重要事項:**
+- このファイルはGit管理対象外（.gitignore設定済み）
+- 機密情報を含むため外部共有厳禁
+- スクリプトにより自動生成・管理
+
 ## 🚀 デプロイ手順
 
-### 11. Firebase設定
+### 1. 初期環境セットアップ
 
-#### 2.1 Firebaseプロジェクトの初期化
+#### 1.1 開発環境準備
+```batch
+REM 統合セットアップ実行（初回のみ）
+scripts\dev-setup.bat
+```
+
+このスクリプトで以下が自動実行されます：
+- 必要ツールの環境確認（Node.js、Flutter、gcloud CLI）
+- APIキー設定の自動生成
+- Flutter依存関係のインストール
+- Functions依存関係のインストール
+
+#### 1.2 動作確認
+```batch
+REM システム動作確認
+scripts\health-check.bat
+```
+
+### 2. 開発・テスト
+
+#### 2.1 ローカル開発
+```batch
+REM Flutter開発実行
+scripts\flutter-dev.bat
+
+REM 別ターミナルでAPI開発サーバー起動
+scripts\functions-dev.bat
+```
+
+#### 2.2 動作テスト
+```batch
+REM ヘルスチェック実行
+scripts\health-check.bat
+```
+
+### 3. リリースビルド
+
+#### 3.1 APKビルド
+```batch
+REM リリース用APK作成
+scripts\flutter-build.bat
+```
+
+ビルド成果物：
+- **APKファイル**: `wellfin\build\app\outputs\flutter-apk\app-release.apk`
+- **自動バージョン設定**: config/development/api-config.jsonのversionを使用
+- **セキュア設定**: APIキーは環境変数で安全に設定
+
+### 3.1.1 Firebase App Distributionへのデプロイ
+
+```batch
+firebase appdistribution:distribute "wellfin/build/app/outputs/flutter-apk/app-release.apk"  --app "1:933043164976:android:97bcddf0bc4d976dd65af5"  --groups "testers"  --release-notes-file "doc/release_notes.md"
+```
+
+#### 3.2 Firebase App Distribution以外のデプロイ
+
+**Android実機インストール:**
+```batch
+REM APKを実機に直接インストール
+adb install wellfin\build\app\outputs\flutter-apk\app-release.apk
+```
+
+**社内配布:**
+- APKファイルを直接配布
+- セキュアなファイル共有サービス利用推奨
+
+### 4. Infrastructure as Code（Terraform）
+
+#### 4.1 インフラデプロイ
 ```bash
-# Firebase CLIのインストール
-npm install -g firebase-tools
-
-# Firebaseにログイン
-firebase login
-
-# プロジェクトの初期化
-firebase init
-
-# 選択項目:
-# - Firestore: データベース
-# - Authentication: 認証
-# - Storage: ファイルストレージ
-# - Functions: サーバーレス関数
-# - Hosting: Webホスティング
+# Terraformでインフラ構築
+cd terraform
+terraform init
+terraform plan
+terraform apply
 ```
 
-#### 2.2 Firestoreセキュリティルールの設定
-```javascript
-// firestore.rules
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // ユーザー認証チェック
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // ユーザー自身のデータのみアクセス可能
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    // ユーザーコレクション
-    match /users/{userId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
-    }
-    
-    // タスクコレクション
-    match /users/{userId}/tasks/{taskId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
-    }
-    
-    // 習慣コレクション
-    match /users/{userId}/habits/{habitId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
-    }
-  }
-}
-```
-
-#### 2.3 Storageセキュリティルールの設定
-```javascript
-// storage.rules
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-### 3. Google Cloud AI設定
-
-#### 3.1 Vertex AI APIの有効化
+#### 4.2 Cloud Functions デプロイ
 ```bash
-# Vertex AI APIの有効化
-gcloud services enable aiplatform.googleapis.com
-
-# Gemini APIの有効化
-gcloud services enable generativelanguage.googleapis.com
-
-# Natural Language APIの有効化
-gcloud services enable language.googleapis.com
-
-# Recommendations AIの有効化
-gcloud services enable recommendationsengine.googleapis.com
+# Functions手動デプロイ
+cd functions
+gcloud functions deploy wellfin-ai-function \
+  --runtime nodejs20 \
+  --trigger-http \
+  --allow-unauthenticated \
+  --region asia-northeast1
 ```
 
-#### 3.2 サービスアカウントの作成
-```bash
-# サービスアカウントの作成
-gcloud iam service-accounts create wellfin-ai-service \
-    --display-name="WellFin AI Service Account"
+## 🔐 セキュリティ考慮事項
 
-# 必要な権限の付与
-gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-    --member="serviceAccount:wellfin-ai-service@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com" \
-    --role="roles/aiplatform.user"
+### APIキー管理
+- **自動生成**: generate-api-keys.js による安全な生成
+- **Git管理除外**: config/development/api-config.json は.gitignore設定
+- **環境変数化**: スクリプトで自動的に環境変数設定
+- **制限設定**: APIキーにIP制限・リファラ制限を自動適用
 
-gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT \
-    --member="serviceAccount:wellfin-ai-service@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com" \
-    --role="roles/ml.developer"
+### 実機デプロイ時の重要事項
+1. **環境変数の確実な設定**: flutter-build.batで自動設定
+2. **APIエンドポイントの正確性**: config/development/api-config.jsonで管理
+3. **認証情報の暗号化**: Google Cloud秘密管理機能活用
+
+## 🧪 トラブルシューティング
+
+### よくある問題と解決方法
+
+#### 1. API 404エラー
+```batch
+REM 設定確認とヘルスチェック
+scripts\health-check.bat
 ```
 
-#### 3.3 APIキーの生成
-```bash
-# APIキーの生成
-gcloud auth application-default login
-
-# サービスアカウントキーの作成
-gcloud iam service-accounts keys create wellfin-ai-key.json \
-    --iam-account=wellfin-ai-service@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
+#### 2. 依存関係エラー
+```batch
+REM 開発環境再セットアップ
+scripts\dev-setup.bat
 ```
 
-### 4. Flutterアプリのビルド
-
-#### 4.1 依存関係の確認
-```bash
-# 依存関係の更新
-flutter pub get
-
-# 依存関係の確認
-flutter pub deps
-```
-
-#### 4.2 アプリのビルド
-```bash
-# Android APKのビルド
-flutter build apk --release
-
-# Android App Bundleのビルド（Google Play用）
-flutter build appbundle --release
-
-# iOSのビルド（macOS環境が必要）
-flutter build ios --release
-
-# Webのビルド
-flutter build web --release
-```
-
-### 5. デプロイ実行
-
-#### 5.1 Firebaseへのデプロイ
-```bash
-# Firestoreセキュリティルールのデプロイ
-firebase deploy --only firestore:rules
-
-# Storageセキュリティルールのデプロイ
-firebase deploy --only storage
-
-# Cloud Functionsのデプロイ
-firebase deploy --only functions
-
-# Webアプリのデプロイ
-firebase deploy --only hosting
-```
-
-#### 5.2 Google Cloud Runへのデプロイ
-```bash
-# Dockerイメージのビルド
-docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/wellfin-api .
-
-# Google Container Registryへのプッシュ
-docker push gcr.io/$GOOGLE_CLOUD_PROJECT/wellfin-api
-
-# Cloud Runへのデプロイ
-gcloud run deploy wellfin-api \
-    --image gcr.io/$GOOGLE_CLOUD_PROJECT/wellfin-api \
-    --platform managed \
-    --region $GOOGLE_CLOUD_REGION \
-    --allow-unauthenticated
-```
-
-## 📋 リリースプロセス
-
-### 1. デプロイ前チェックリスト
-
-#### ビルド前確認
-- [ ] `pubspec.yaml`のバージョン更新
-- [ ] `release_notes.md`の更新
-- [ ] テスト実行: `flutter test`
-- [ ] コード分析: `flutter analyze`
-
-#### Firebase設定確認
-- [ ] `firebase.json`の設定確認
-- [ ] `.firebaserc`のプロジェクトID確認
-- [ ] Firebase Consoleでアプリ登録済み
-- [ ] テスターグループ設定済み
-
-#### セキュリティ確認
-- [ ] APIキーがGitにコミットされていない
-- [ ] 機密情報が含まれていない
-- [ ] プロダクション用の設定になっている
-
-#### 機能確認
-- [ ] 習慣管理機能の動作確認
-- [ ] タスク管理機能の動作確認
-- [ ] Firestore連携の確認
-- [ ] UI/UXの確認
-
-### 2. リリース手順
-
-#### 2.1 テスト配布（Firebase App Distribution）
-
-- ドキュメント
-  - https://firebase.google.com/docs/app-distribution/android/distribute-cli?hl=ja
-
-```bash
-# リリースビルド
+#### 3. ビルドエラー
+```batch
+REM Flutterクリーンビルド
 cd wellfin
-flutter build apk --release --build-name={バージョン名}
+flutter clean
+flutter pub get
+cd ..
+scripts\flutter-build.bat
 ```
 
-- デプロイ
+## 📚 参考資料
 
-```
-# Firebase App Distribution配布
-firebase appdistribution:distribute "build/app/outputs/flutter-apk/app-release.apk"
-  --app "1:933043164976:android:97bcddf0bc4d976dd65af5"
-  --groups "testers"
-  --release-notes-file "../doc/release_notes.md"
-```
+### スクリプト実行順序（推奨）
+1. **初回セットアップ**: `scripts\dev-setup.bat`
+2. **動作確認**: `scripts\health-check.bat`
+3. **開発作業**: `scripts\flutter-dev.bat` + `scripts\functions-dev.bat`
+4. **リリース準備**: `scripts\flutter-build.bat`
+5. **定期チェック**: `scripts\health-check.bat`
 
-#### 2.2 本番リリース（Google Play Store）
-```bash
-# App Bundleビルド
-flutter build appbundle --release
+### 環境変数
+- `WELLFIN_API_KEY`: Google Cloud APIキー
+- `WELLFIN_API_URL`: Cloud Functions エンドポイントURL
 
-# Google Play Consoleに手動アップロード
-# https://play.google.com/console
-```
-
-#### 2.3 Web版リリース（オプション）
-```bash
-# Webビルド
-flutter build web --release
-
-# Firebase Hostingデプロイ
-firebase deploy --only hosting
-```
-
-### 3. デプロイ後確認
-
-#### 機能確認
-- [ ] ダッシュボード機能の動作確認
-- [ ] タスク管理機能の動作確認
-- [ ] 習慣管理機能の動作確認
-- [ ] Firestore連携の確認
-
-#### パフォーマンス確認
-- [ ] ダッシュボード初期読み込み < 3秒
-- [ ] タスクリスト読み込み < 2秒
-- [ ] 習慣リスト読み込み < 2秒
-- [ ] タスク完了操作 < 1秒
-
-#### エラー監視
-```bash
-# Firebase Console でログを確認
-# https://console.firebase.google.com/project/your-project-id/logs
-
-# Firebase Crashlytics でクラッシュレポートを確認
-# https://console.firebase.google.com/project/your-project-id/crashlytics
-```
-
-## 🎯 推奨ワークフロー
-
-### 開発段階
-1. 機能実装
-2. デバッグビルド: `flutter build apk --debug`
-3. エミュレータ/実機テスト
-4. コードレビュー
-
-### テスト配布
-1. リリースビルド: `flutter build apk --release`
-2. Firebase App Distribution配布
-3. テスターからのフィードバック収集
-4. バグ修正・改善
-
-### 本番リリース
-1. App Bundleビルド: `flutter build appbundle --release`
-2. Google Play Consoleアップロード
-3. 審査申請
-4. 公開
-
-## 📚 参考リンク
-
-- [Flutter公式ドキュメント](https://docs.flutter.dev/deployment/android)
-- [Firebase App Distribution](https://firebase.google.com/docs/app-distribution)
-- [Google Play Console](https://play.google.com/console)
-- [Firebase Console](https://console.firebase.google.com/project/wellfin-72698)
-
----
-
-*最終更新: 2025年6月28日* 
+### 重要ファイル
+- `config/development/api-config.json`: APIキー設定（Git管理対象外）
+- `functions/src/index.js`: Cloud Functions メインコード
+- `terraform/`: Infrastructure as Code 設定 

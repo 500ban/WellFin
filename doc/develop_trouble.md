@@ -3,7 +3,7 @@
 ## 📋 概要
 **プロジェクト**: WellFin - AI Agent Flutterアプリ  
 **対象期間**: 2024年12月 - 2025年6月  
-**最終更新**: 2025年6月26日
+**最終更新**: 2025年6月29日
 
 ## 🔧 解決済みトラブル
 
@@ -101,6 +101,75 @@ WSL2（Ubuntu）からWindows側のAndroid Studioエミュレーターが認識�
 - 公式サポート・ドキュメントが充実
 - トラブルシューティングが容易
 
+### 6. Flutter実機デプロイ後のAPI 404エラー（2025年6月29日）
+**発生時期**: 2025年6月29日  
+**エラー内容**: 
+```
+AI分析に失敗しました: Exception: Failed to analyze task: 404 - 
+<html><head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<title>404 Page not found</title>
+</head>
+<body text=#000000 bgcolor=#ffffff>
+<h1>Error: Page not found</h1>
+<h2>The requested URL was not found on this server.</h2>
+<h2></h2>
+</body></html>
+```
+
+**環境差異**:
+- **ローカル開発**: 正常動作
+- **Android実機**: 404エラーで動作不可
+
+**原因分析**:
+1. **プレースホルダーURL使用**: `your-gcp-project-id` がAndroid実機で使用された
+2. **環境変数未設定**: 実機では環境変数が未設定でデフォルト値が使用
+3. **システム設計ミス**: Cloud Run ServiceからCloud Run Functionsへの変更時の対応不備
+4. **重大なセキュリティリスク**: GCPプロジェクトID `[YOUR-GCP-PROJECT-ID]` をソースコードにハードコード
+
+**解決手順**:
+1. **Cloud Run Functions動作確認**:
+   ```bash
+   curl -X GET "https://asia-northeast1-[YOUR-GCP-PROJECT-ID].cloudfunctions.net/wellfin-ai-function/health"
+   # ✅ 正常レスポンス確認
+   
+   curl -X GET "https://asia-northeast1-[YOUR-GCP-PROJECT-ID].cloudfunctions.net/wellfin-ai-function/test-ai"
+   # ✅ Vertex AI接続テスト成功
+   ```
+
+2. **セキュリティリスク排除**:
+   ```dart
+   // ❌ 危険: ハードコードされた機密情報
+   defaultValue: '[YOUR-GCP-PROJECT-ID]'
+   
+   // ✅ 安全: 環境変数化
+   static String get _baseUrl => const String.fromEnvironment(
+     'WELLFIN_API_URL',
+     defaultValue: 'http://localhost:8080', // ローカル開発用のみ
+   );
+   ```
+
+3. **既存ビルドシステム統合**:
+   - `config/development/api-config.json` (Git保護済み) の活用
+   - `flutter-build.bat` による `--dart-define=WELLFIN_API_URL=...` 設定
+   - 既存の完璧なシステムとの統合
+
+4. **実機動作確認**:
+   ```bash
+   scripts\flutter-build.bat
+   # ✅ APKビルド成功
+   # ✅ 環境変数正しく設定
+   # ✅ 実機でAI機能完全動作
+   ```
+
+**技術的教訓**:
+- **既存システム理解の重要性**: 独自実装より既存システム活用
+- **セキュリティファースト**: 機密情報のGit管理からの除外
+- **環境差異の考慮**: ローカル/実機環境の動作差異への対応
+- **Infrastructure as Code価値**: 100%自動化による設定漂流防止
+
+**結果**: ✅ 解決済み - Android実機でAI分析機能完全動作
+
 ## 🚨 現在の課題
 
 ### Google Sign-Inエラー（2025年6月26日現在）
@@ -173,14 +242,26 @@ flutter clean
 # 依存関係更新
 flutter pub get
 
-# ビルド
+# デバッグビルド
 flutter build apk --debug
+
+# リリースビルド（環境変数設定込み）
+scripts\flutter-build.bat
 
 # 実行
 flutter run
 
 # 診断
 flutter doctor
+
+# Cloud Run Functions動作確認
+curl -X GET "https://asia-northeast1-[YOUR-GCP-PROJECT-ID].cloudfunctions.net/wellfin-ai-function/health"
+
+# AI接続テスト
+curl -X GET "https://asia-northeast1-[YOUR-GCP-PROJECT-ID].cloudfunctions.net/wellfin-ai-function/test-ai"
+
+# Terraform状態確認
+cd terraform && terraform show
 ```
 
 ### 重要な設定ファイル
@@ -188,6 +269,12 @@ flutter doctor
 - `android/app/build.gradle.kts`: Android設定
 - `android/app/google-services.json`: Firebase設定
 - `android/app/src/main/AndroidManifest.xml`: アプリ設定
+- `config/development/api-config.json`: API設定（Git保護済み）
+- `scripts/flutter-build.bat`: 環境変数設定込みビルドスクリプト
+- `terraform/main.tf`: Infrastructure as Code設定
+- `terraform/terraform.tfvars`: GCP設定値（Git保護済み）
+- `functions/src/index.js`: Cloud Run Functions エントリーポイント
+- `functions/package.json`: Node.js Dependencies
 
 ## 📚 参考資料
 
@@ -195,36 +282,28 @@ flutter doctor
 - [Flutter公式ドキュメント](https://docs.flutter.dev/)
 - [Firebase公式ドキュメント](https://firebase.google.com/docs)
 - [Android開発者ドキュメント](https://developer.android.com/docs)
+- [Google Cloud Platform ドキュメント](https://cloud.google.com/docs?hl=ja)
+- [Cloud Run Functions ドキュメント](https://cloud.google.com/functions/docs?hl=ja)
+- [Vertex AI ドキュメント](https://cloud.google.com/vertex-ai/docs?hl=ja)
+- [Terraform ドキュメント](https://developer.hashicorp.com/terraform/docs)
 
 ### トラブルシューティングガイド
 - [Google Play services クライアント認証ガイド](https://developers.google.com/android/guides/client-auth?hl=ja#windows)
-- [Flutterトラブルシューティング](https://docs.flutter.dev/get-started/install/windows#android-setup)
+- [Cloud Run Functions トラブルシューティング](https://cloud.google.com/functions/docs/troubleshooting?hl=ja)
+- [Vertex AI エラー解決ガイド](https://cloud.google.com/vertex-ai/docs/troubleshooting?hl=ja)
+- [Terraform トラブルシューティング](https://developer.hashicorp.com/terraform/tutorials/configuration-language/troubleshooting-workflow)
 
-### コミュニティリソース
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/flutter)
-- [Flutter GitHub Issues](https://github.com/flutter/flutter/issues)
+### セキュリティガイド
+- [GCP セキュリティベストプラクティス](https://cloud.google.com/security/best-practices?hl=ja)
+- [Flutter セキュアコーディング](https://docs.flutter.dev/security)
+- [環境変数管理ベストプラクティス](https://12factor.net/config)
 
-## 🔄 更新履歴
-
-| 日付 | 内容 | 状況 |
-|------|------|------|
-| 2024年12月 | Java 11エラー解決 | ✅ 完了 |
-| 2024年12月 | Gradle依存エラー解決 | ✅ 完了 |
-| 2024年12月 | JVMターゲット不一致解決 | ✅ 完了 |
-| 2024年12月 | NDK警告解決 | ✅ 完了 |
-| 2025年6月 | WSL2接続問題解決 | ✅ 完了 |
-| 2025年6月26日 | Google Sign-Inエラー対応中 | 🔄 進行中 |
-
-## 2025年6月27日 ビルド・配布トラブル対応
-
-- R8（ProGuard）エラー：Google Play Core関連のMissing classでリリースビルド失敗
-  - ProGuardルール追加でも解決せず
-  - 一時的にminify/shrinkを無効化し、リリースビルド成功
-- デバッグビルドは問題なし
-- Firebase App Distributionでテスト配布を推奨
-- 本番リリース時はProGuardルール再調整・難読化有効化が必要
+### Flutter開発ガイド
+- [Flutter Windows インストールガイド](https://docs.flutter.dev/get-started/install/windows)
+- [Flutter Android セットアップ](https://docs.flutter.dev/get-started/install/windows#android-setup)
+- [Flutter トラブルシューティング](https://docs.flutter.dev/resources/faq)
 
 ---
 
-**最終更新**: 2025年6月26日  
-**次回更新**: 新しいトラブル発生時または解決時 
+**最終更新**: 2025年6月29日 - Flutter実機デプロイ問題解決追加  
+**次回更新**: 新しいトラブル発生時または解決時
