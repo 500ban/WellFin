@@ -125,6 +125,7 @@
    - `servise/03_operations.md` → ユースケース確認
    - `servise/04_implementation.md` → 実装計画確認
    - `servise/05_guideline.md` → 開発ガイドライン確認
+   - `architecture-diagram.md` → システムアーキテクチャ図確認
 
 2. **バグ修正時**
    - `develop_trouble.md` → 既知の問題確認
@@ -134,6 +135,7 @@
    - `../functions/docs/openapi.yaml` → API仕様詳細確認
    - `guide/api-key-management.md` → APIキー管理・認証方式確認
    - `servise/02_architecture.md` → AI Agent・セキュリティアーキテクチャ確認
+   - `architecture-diagram.md` → システムアーキテクチャ図確認
 
 4. **セキュリティ・APIキー関連作業時**
    - `guide/api-key-management.md` → APIキー管理・セキュリティベストプラクティス確認
@@ -142,6 +144,7 @@
 5. **ドキュメント更新時**
    - `servise/README.md` → 全体構成確認
    - 対応する`servise/`内ファイル → 詳細内容確認
+   - `architecture-diagram.md` → システムアーキテクチャ図確認
 
 6. **リリース準備時**
    - `release_notes.md` → 変更履歴確認

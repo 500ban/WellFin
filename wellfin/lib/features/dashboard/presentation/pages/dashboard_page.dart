@@ -134,7 +134,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         if (user == null) {
           // ユーザーがログアウトした場合、ログインページに遷移
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
+            if (mounted) {
               Navigator.of(context).pushNamedAndRemoveUntil(
                 '/login',
                 (route) => false,
@@ -174,7 +174,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 final authActions = ref.read(authActionsProvider);
                 await authActions.signOut();
               } catch (e) {
-                if (context.mounted) {
+                if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('ログアウトに失敗しました: $e'),
@@ -720,7 +720,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             
             const SizedBox(height: 12),
             
-                              // デバッグ情報（開発環境のみ）
+            // デバッグ情報（開発環境のみ）
             if (const bool.fromEnvironment('dart.vm.product') == false) ...[
               const SizedBox(height: 12),
             Row(
@@ -2474,7 +2474,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           final uncompletedTasks = tasks.where((t) => !t.isCompleted).toList();
           
           if (uncompletedTasks.isEmpty) {
-            if (context.mounted) {
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('最適化するタスクがありません'),
@@ -2508,7 +2508,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             },
           );
           
-          if (context.mounted) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('スケジュールを最適化しました（${result.optimizedSchedule.length}件のタスク）'),
@@ -2527,7 +2527,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         error: (_, __) {},
       );
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('スケジュール最適化に失敗しました: $e'),
@@ -2641,7 +2641,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       final healthCheck = await AIAgentService.healthCheck();
       
       // 3. 結果をダイアログで表示
-      if (context.mounted) {
+      if (mounted) {
         Navigator.of(context).pop(); // ローディングダイアログを閉じる
         
         showDialog(
@@ -2702,7 +2702,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 TextButton(
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    if (context.mounted) {
+                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('アプリを再起動して適切なAPIキーを設定してください'),
@@ -2719,7 +2719,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         Navigator.of(context).pop(); // ローディングダイアログを閉じる
         
         showDialog(
