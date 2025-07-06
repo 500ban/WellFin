@@ -7,6 +7,7 @@ import '../widgets/add_task_dialog.dart';
 import '../widgets/task_detail_dialog.dart';
 import '../widgets/edit_task_dialog.dart';
 import '../providers/task_provider.dart';
+import '../../../../shared/widgets/app_navigation_bar.dart';
 
 /// タスク一覧ページ
 class TaskListPage extends ConsumerStatefulWidget {
@@ -111,6 +112,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         },
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: const AppNavigationBar(currentIndex: 1),
     );
   }
 

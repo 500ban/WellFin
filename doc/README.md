@@ -18,15 +18,17 @@
 - データベース設計
 - システムアーキテクチャ
 - 運用・セキュリティ・ベストプラクティス
-- ユースケース・実装計画
+- 実装計画・開発ロードマップ
 - 開発ガイドライン・参考資料
+- **ユースケース・成功基準**（Google Calendar連携97.5%達成）
 
 **実際の配置場所**: 
 - [第1部：サービス概要・要件定義](./servise/01_overview.md)
 - [第2部：システム設計・アーキテクチャ](./servise/02_architecture.md)
 - [第3部：運用・セキュリティ・ベストプラクティス](./servise/03_operations.md)
-- [第4部：ユースケース・実装計画](./servise/04_implementation.md)
+- [第4部：実装計画・開発ロードマップ](./servise/04_implementation.md)
 - [第5部：開発ガイドライン・参考資料](./servise/05_guideline.md)
+- [第6部：ユースケース・成功基準](./servise/06_usecase.md)
 
 #### [API仕様書（OpenAPI 3.0）](../functions/docs/openapi.yaml)
 **概要**: Cloud Run Functions AI Agent APIの完全な技術仕様書
@@ -122,9 +124,10 @@
    - `servise/01_overview.md` → 実装状況確認
    - `servise/02_architecture.md` → アーキテクチャ・データベース設計確認
    - `../functions/docs/openapi.yaml` → API仕様詳細確認
-   - `servise/03_operations.md` → ユースケース確認
-   - `servise/04_implementation.md` → 実装計画確認
+   - `servise/03_operations.md` → 運用・セキュリティ確認
+   - `servise/04_implementation.md` → 実装計画・ロードマップ確認
    - `servise/05_guideline.md` → 開発ガイドライン確認
+   - `servise/06_usecase.md` → ユースケース・成功基準確認
    - `architecture-diagram.md` → システムアーキテクチャ図確認
 
 2. **バグ修正時**
@@ -150,5 +153,5 @@
    - `release_notes.md` → 変更履歴確認
    - `deploy.md` → デプロイ手順確認
 
-**最終更新**: 2025年6月29日 - guide/ディレクトリ追加、APIキー管理ガイド移動  
+**最終更新**: 2025年7月6日 - 第6部ユースケース・成功基準追加、Google Calendar連携完了反映、通知機能削除・ドキュメント更新  
 **次回更新予定**: doc配下にドキュメントを追加する場合

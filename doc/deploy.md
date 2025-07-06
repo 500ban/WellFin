@@ -30,14 +30,19 @@ scripts\flutter-dev.bat
 ```
 
 #### flutter-build.bat
-**リリース用APKビルド**
+**リリース用APKビルド & デプロイ統合**
 - APIキー設定を自動読み込み（config/development/api-config.json）
 - セキュアな環境変数設定
 - リリース用APKの自動ビルド
+- Firebase App Distributionへの自動デプロイ
 - ビルド成果物: `wellfin\build\app\outputs\flutter-apk\app-release.apk`
 
 ```batch
+REM 完全自動（ビルド＋デプロイ）
 scripts\flutter-build.bat
+
+REM ビルドのみ（デプロイなし）
+scripts\flutter-build.bat --no-deploy
 ```
 
 #### functions-dev.bat
@@ -135,12 +140,25 @@ REM ヘルスチェック実行
 scripts\health-check.bat
 ```
 
-### 3. リリースビルド
+### 3. リリースビルド & デプロイ
 
-#### 3.1 APKビルド
+#### 3.1 統合デプロイ（推奨）
 ```batch
-REM リリース用APK作成
+REM 自動ビルド＋Firebase App Distributionデプロイ
 scripts\flutter-build.bat
+```
+
+**実行内容:**
+1. APIキー設定の自動読み込み
+2. Firebase CLI の確認
+3. Flutter APK のリリースビルド
+4. Firebase App Distribution への自動アップロード
+5. テスターグループへの通知送信
+
+#### 3.2 ビルドのみ（デプロイなし）
+```batch
+REM APKビルドのみ実行
+scripts\flutter-build.bat --no-deploy
 ```
 
 ビルド成果物：
@@ -148,13 +166,23 @@ scripts\flutter-build.bat
 - **自動バージョン設定**: config/development/api-config.jsonのversionを使用
 - **セキュア設定**: APIキーは環境変数で安全に設定
 
-### 3.1.1 Firebase App Distributionへのデプロイ
+#### 3.3 手動Firebase App Distributionデプロイ
 
+**事前準備:**
+```batch
+REM Firebase CLI インストール（初回のみ）
+npm install -g firebase-tools
+
+REM Firebase ログイン（初回のみ）
+firebase login
+```
+
+**手動デプロイコマンド:**
 ```batch
 firebase appdistribution:distribute "wellfin/build/app/outputs/flutter-apk/app-release.apk"  --app "1:933043164976:android:97bcddf0bc4d976dd65af5"  --groups "testers"  --release-notes-file "doc/release_notes.md"
 ```
 
-#### 3.2 Firebase App Distribution以外のデプロイ
+#### 3.4 その他のデプロイ方法
 
 **Android実機インストール:**
 ```batch
@@ -227,14 +255,39 @@ cd ..
 scripts\flutter-build.bat
 ```
 
+#### 4. Firebase App Distribution デプロイエラー
+```batch
+REM Firebase CLI確認とログイン
+firebase --version
+firebase login
+
+REM 手動デプロイテスト
+firebase appdistribution:distribute "wellfin/build/app/outputs/flutter-apk/app-release.apk" --app "1:933043164976:android:97bcddf0bc4d976dd65af5" --groups "testers" --release-notes-file "doc/release_notes.md"
+```
+
+**よくあるデプロイエラー:**
+- **Firebase CLI未インストール**: `npm install -g firebase-tools`
+- **未ログイン**: `firebase login` で認証
+- **アプリID不正**: Firebase Console でアプリIDを確認
+- **テスターグループ不存在**: Firebase Console で「testers」グループを作成
+- **権限不足**: Firebase プロジェクトへのアクセス権限を確認
+
 ## 📚 参考資料
 
 ### スクリプト実行順序（推奨）
 1. **初回セットアップ**: `scripts\dev-setup.bat`
 2. **動作確認**: `scripts\health-check.bat`
-3. **開発作業**: `scripts\flutter-dev.bat` + `scripts\functions-dev.bat`
-4. **リリース準備**: `scripts\flutter-build.bat`
-5. **定期チェック**: `scripts\health-check.bat`
+3. **Firebase CLI準備**: `npm install -g firebase-tools` && `firebase login`
+4. **開発作業**: `scripts\flutter-dev.bat` + `scripts\functions-dev.bat`
+5. **リリースデプロイ**: `scripts\flutter-build.bat` （ビルド + App Distribution）
+6. **定期チェック**: `scripts\health-check.bat`
+
+### リリース時のワークフロー
+1. **開発完了**: 機能実装・テスト完了
+2. **バージョン更新**: `config\development\api-config.json` のversion更新
+3. **リリースノート更新**: `doc\release_notes.md` の内容更新
+4. **統合デプロイ実行**: `scripts\flutter-build.bat`
+5. **テスター通知確認**: Firebase Console で配布状況確認
 
 ### 環境変数
 - `WELLFIN_API_KEY`: Google Cloud APIキー

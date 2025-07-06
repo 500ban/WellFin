@@ -7,7 +7,14 @@ import 'package:flutter/services.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: [
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/calendar.events',
+    ],
+  );
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final Logger _logger = Logger();
 
@@ -26,6 +33,9 @@ class AuthService {
       _logger.i('Google Sign-In configuration check...');
       _logger.i('Package name: com.ban500.wellfin');
       _logger.i('Firebase project ID: wellfin-72698');
+      
+      // 既存のGoogle認証をクリア（アカウント選択を強制）
+      await _googleSignIn.signOut();
       
       // Google Sign-Inの実行
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -110,9 +120,7 @@ class AuthService {
           createdAt: DateTime.now(),
           lastLogin: DateTime.now(),
           timeZone: 'Asia/Tokyo',
-          preferences: UserPreferences(
-            notificationChannels: NotificationChannels(),
-          ),
+          preferences: UserPreferences(),
           calendarSync: CalendarSync(),
           stats: UserStats(),
         );
@@ -166,29 +174,7 @@ class AuthService {
     }
   }
 
-  // ユーザー設定を更新
-  static Future<void> updateUserPreferences(String uid, UserPreferences preferences) async {
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'preferences': preferences.toMap(),
-      });
-    } catch (e) {
-      _logger.e('Error updating user preferences: $e');
-      rethrow;
-    }
-  }
 
-  // カレンダー同期設定を更新
-  static Future<void> updateCalendarSync(String uid, CalendarSync calendarSync) async {
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'calendarSync': calendarSync.toMap(),
-      });
-    } catch (e) {
-      _logger.e('Error updating calendar sync: $e');
-      rethrow;
-    }
-  }
 
   // アカウント削除
   static Future<void> deleteAccount() async {

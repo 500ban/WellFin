@@ -9,6 +9,8 @@ import 'shared/providers/user_provider.dart';
 import 'shared/services/android_service.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/dashboard/presentation/pages/dashboard_page.dart';
+import 'features/calendar/presentation/pages/calendar_page.dart';
+import 'features/analytics/presentation/pages/analytics_page.dart';
 import 'shared/widgets/loading_widget.dart';
 
 void main() async {
@@ -80,24 +82,23 @@ class WellFinApp extends ConsumerWidget {
             data: (user) {
               if (user != null) {
                 // ユーザーがログインしている場合
-                return Consumer(
-                  builder: (context, ref, child) {
-                    final userData = ref.watch(userDataProvider(user.uid));
+                // 🔧 autoUserProviderを使用（無限ループを防ぐ）
+                final userData = ref.watch(autoUserProvider);
                     
-                    return userData.when(
-                      data: (userModel) {
-                        if (userModel != null) {
-                          return const DashboardPage();
-                        } else {
-                          return const LoginPage();
-                        }
-                      },
-                      loading: () => const LoadingWidget(),
-                      error: (error, stack) {
-                        // エラーの場合はログインページに戻す
-                        return const LoginPage();
-                      },
-                    );
+                return userData.when(
+                  data: (userModel) {
+                    if (userModel != null) {
+                      return const DashboardPage();
+                    } else {
+                      // ユーザーデータが存在しない場合、ログインページに戻す
+                      return const LoginPage();
+                    }
+                  },
+                  loading: () => const LoadingWidget(),
+                  error: (error, stack) {
+                    // エラーの場合はログインページに戻す
+                    print('User data loading error: $error');
+                    return const LoginPage();
                   },
                 );
               } else {
@@ -118,6 +119,8 @@ class WellFinApp extends ConsumerWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const DashboardPage(),
+        '/calendar': (context) => const CalendarPage(),
+        '/analytics': (context) => const AnalyticsPage(),
       },
     );
   }

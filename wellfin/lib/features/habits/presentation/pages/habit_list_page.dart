@@ -4,6 +4,7 @@ import '../../domain/entities/habit.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/add_habit_dialog.dart';
 import '../widgets/edit_habit_dialog.dart';
+import '../../../../shared/widgets/app_navigation_bar.dart';
 
 class HabitListPage extends ConsumerStatefulWidget {
   const HabitListPage({super.key});
@@ -140,6 +141,7 @@ class _HabitListPageState extends ConsumerState<HabitListPage> {
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: const AppNavigationBar(currentIndex: -1),
     );
   }
 

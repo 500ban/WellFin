@@ -21,6 +21,26 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 - 時間管理を改善したい学生・社会人
 - AI技術を活用した生活改善に興味があるユーザー
 
+### 1.4 Google Calendar機能使い方ガイド
+
+#### 基本操作
+1. **カレンダー表示**: メニューから「カレンダー」選択
+2. **イベント作成**: タイムライン上タップまたは「+」ボタン
+3. **イベント調整**: ドラッグ&ドロップで時間変更
+4. **色選択**: イベント作成時にカラーピッカー使用（11色対応）
+5. **イベント展開**: 下部イベントリストをタップで展開
+6. **削除**: イベントタップ→詳細→削除
+
+#### 管理者向け運用
+1. **設定確認**: Google Calendar同期設定
+2. **パフォーマンス**: 大量イベント時の動作監視
+3. **バックアップ**: Firestore自動バックアップ確認
+
+#### メンテナンス項目
+- **月次**: Google Calendar API使用量確認
+- **四半期**: パフォーマンス・UX評価
+- **年次**: 機能拡張計画見直し
+
 ## 2. 機能要件・実装状況
 
 ### 2.1 機能実装状況一覧表
@@ -28,7 +48,7 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 | 機能 | 実装状況 | ファイル | 詳細 |
 |------|----------|----------|------|
 | **認証システム** | ✅ 実装済み | `auth_service.dart`<br>`login_page.dart` (7.7KB, 206行) | Firebase Auth統合済み |
-| **ダッシュボード機能** | ✅ 実装済み | `dashboard_page.dart` (99KB, 2741行) | 超大規模実装、習慣・タスク・目標機能ナビゲーション、UI改善完了 |
+| **ダッシュボード機能** | ✅ 実装済み | `dashboard_page.dart` (99KB, 2741行) | 超大規模実装、習慣・タスク・目標機能ナビゲーション、UI改善完了、**Phase 5: 型エラー・レイアウトエラー解決、設定機能完全復元、ログアウト機能実装、スクロール監視最適化完了** |
 | **AIエージェント機能** | ✅ 実装済み | `ai_agent_service.dart`<br>`ai_agent_test_page.dart` (12KB, 366行) | テストページ実装済み、Cloud Run Functions API統合、セキュリティ強化完了 |
 | **Firebase統合** | ✅ 実装済み | `auth_service.dart` | Auth, Firestore対応 |
 | **Android固有機能** | ✅ 実装済み | `android_service.dart` | ネイティブ機能統合 |
@@ -38,7 +58,7 @@ WellFin（ウェルフィン）は、日常生活の生産性を向上させ、�
 | **目標管理** | ✅ 実装済み | `features/goals/`<br>`goal_list_page.dart` (12KB, 359行)<br>+ 5つのwidgets | 完全実装、ドメインエンティティ、リポジトリ（Firestore連携）、ユースケース、データモデル、UI、CRUD操作、マイルストーン管理、進捗追跡、統計機能 |
 | **Cloud Run Functions API** | ✅ 実装済み | `functions/src/index.js` (534行)<br>+ 5つのAPIエンドポイント | Node.js 22、Vertex AI Gemini統合、APIキー認証、Health Check、完全動作確認済み |
 | **Infrastructure as Code** | ✅ 実装済み | `terraform/main.tf` (136行) | 100%自動化達成、GCPリソース完全管理、セキュリティ強化 |
-| **カレンダー機能** | ❌ 未実装 | `features/calendar/` | ディレクトリ構造のみ（entitiesディレクトリ空） |
+| **カレンダー機能** | ✅ 実装済み | `features/calendar/`<br>`google_calendar_service.dart` | **Google Calendar完全統合**、週間ビュー・タイムライン・ドラッグ&ドロップ・イベント管理・展開機能（Phase 1-4完了） |
 | **分析機能** | ❌ 未実装 | `features/analytics/` | ディレクトリ構造のみ（entitiesディレクトリ空） |
 
 ### 2.2 プロジェクト構造
@@ -80,7 +100,7 @@ wellfin/
 │   │   │       │   ├── edit_task_dialog.dart ✅ (18KB, 582行)
 │   │   │       │   └── task_detail_dialog.dart ✅ (13KB, 433行)
 │   │   │       └── providers/task_provider.dart ✅
-│   │   └── goals/
+│   │   ├── goals/
 │   │       ├── data/
 │   │       │   ├── models/goal_model.dart ✅
 │   │       │   └── repositories/firestore_goal_repository.dart ✅
@@ -97,11 +117,26 @@ wellfin/
 │   │           │   ├── goal_detail_dialog.dart ✅ (15KB, 361行)
 │   │           │   └── goal_stats_widget.dart ✅ (2.3KB, 60行)
 │   │           └── providers/goal_provider.dart ✅
+│   │   └── calendar/ **（Google Calendar連携完全実装）**
+│   │       ├── domain/
+│   │       │   └── entities/calendar_event.dart ✅
+│   │       └── presentation/
+│   │           ├── pages/calendar_page.dart ✅ **（Phase 4展開機能付き）**
+│   │           ├── providers/calendar_provider.dart ✅
+│   │           └── widgets/
+│   │               ├── add_event_dialog.dart ✅
+│   │               ├── calendar_event_list.dart ✅ **（展開機能対応）**
+│   │               ├── calendar_timeline_view.dart ✅
+│   │               ├── calendar_week_view.dart ✅
+│   │               ├── delete_event_dialog.dart ✅
+│   │               ├── draggable_event_widget.dart ✅
+│   │               └── event_detail_dialog.dart ✅
 │   ├── shared/
 │   │   ├── services/
-│   │   │   ├── auth_service.dart ✅
+│   │   │   ├── auth_service.dart ✅ **（Google Calendar API統合）**
 │   │   │   ├── ai_agent_service.dart ✅ **（セキュリティ強化済み）**
-│   │   │   └── android_service.dart ✅
+│   │   │   ├── android_service.dart ✅
+│   │   │   └── google_calendar_service.dart ✅ **（完全双方向同期）**
 │   │   └── providers/
 │   │       ├── auth_provider.dart ✅
 │   │       └── user_provider.dart ✅
@@ -146,6 +181,27 @@ wellfin/
 ### 3.1 ダッシュボード機能（最新実装状況）
 **ファイル**: `lib/features/dashboard/presentation/pages/dashboard_page.dart`
 
+#### Phase 5: ダッシュボード改善・ログアウト機能実装（2025年7月6日）
+- **型エラー完全解決**: `type '(dynamic) => dynamic' is not a subtype of type '(Goal) => bool'` エラー解決
+  - Goal型のインポート追加
+  - 引数型の明示的定義
+  - メソッド戻り値型の明確化
+- **レイアウトエラー完全解決**: `RenderFlex children have non-zero flex` エラー解決
+  - 全ダッシュボードカードに `mainAxisSize: MainAxisSize.min` 追加
+  - `Expanded` を固定高さ `SizedBox` に変更
+- **設定機能完全復元**: 設定BottomSheetの完全実装
+  - 管理機能セクション（タスク・習慣・カレンダー・目標・分析管理）
+  - アプリ設定セクション（通知設定・アプリについて）
+  - DraggableScrollableSheet による優れたUX
+- **ログアウト機能実装**: タイトル右側配置によるアクセスしやすいログアウト
+  - グレー系の上品なデザイン（赤色から変更）
+  - ワンタップログアウト（確認ダイアログ削除）
+  - `pushNamedAndRemoveUntil` による確実なリダイレクト
+- **スクロール監視最適化**: ヘッダーが隠れるタイミングでの表示
+  - 監視高さ: 300px → 80px（約4倍速い反応）
+  - 設定ボタン + TOPに戻るボタンの縦並び配置
+  - スムーズアニメーション（500ms）
+
 #### 最新のUI改善（2025年6月28日）
 - **FloatingActionButton削除**: 右下のタスク追加ボタンを削除し、UIをよりシンプルに
 - **クイックアクセスメニュー簡素化**: 
@@ -185,6 +241,13 @@ wellfin/
 - **生産性向上提案**: AIによる個別化された提案
 - **習慣継続サポート**: ストリーク情報を活用した継続支援
 - **時間管理アドバイス**: 集中力の高い時間帯の提案
+- **手動トリガー + 条件付きキャッシュ方式**: 🔄ボタンクリック時のみAI呼び出し
+
+#### 設定機能セクション（Phase 5新機能）
+- **管理機能**: タスク・習慣・カレンダー・目標・分析管理へのナビゲーション
+- **アプリ設定**: 通知設定・アプリについて
+- **ログアウト機能**: タイトル右側配置、ワンタップ実行、確実なリダイレクト
+- **UI/UX**: DraggableScrollableSheet、レスポンシブ対応
 
 #### 習慣トラッキング
 - **今日の習慣表示**: 今日実行すべき習慣の一覧
@@ -195,6 +258,24 @@ wellfin/
 - **週間・月間統計**: 期間別の生産性データ
 - **グラフ表示**: 視覚的なデータ表現
 - **傾向分析**: 生産性の変化傾向
+
+#### スクロール機能（Phase 5改善）
+- **TOPに戻るボタン**: 80px閾値でのスマート表示（ヘッダーが隠れるタイミング）
+- **設定ボタン**: フローティングアクションボタンとして縦並び配置
+- **スムーズアニメーション**: 500msでTOPに復帰
+- **自動非表示**: TOPに戻った後の自動ボタン非表示
+
+#### 技術的成果（Phase 5）
+- **型安全性の確保**: Flutter型システムの完全活用、全型エラー解決
+- **レイアウト安定性**: Flexレイアウトの適切な実装、エラー完全解決
+- **ナビゲーション完全性**: `pushNamedAndRemoveUntil` による履歴管理
+- **UX最適化**: スクロール監視の4倍速化、自然なタイミング実現
+- **セキュリティ強化**: ログアウト機能の安全な実装
+
+#### 実装ファイル（Phase 5）
+- **主要修正**: `wellfin/lib/features/dashboard/presentation/pages/dashboard_page.dart`
+- **型修正**: `wellfin/lib/features/dashboard/presentation/widgets/dashboard_widgets.dart`
+- **認証強化**: `wellfin/lib/shared/providers/auth_provider.dart` インポート追加
 
 ### 3.2 習慣管理機能の実装詳細（最新実装状況：2025年6月28日）
 
@@ -310,17 +391,22 @@ wellfin/
   - JWTトークン管理とセキュアな更新メカニズム
   - FlutterFireパッケージでのネイティブアプリ統合
 
-### 3.8 カレンダー管理
+### 3.8 カレンダー管理（✅ 実装完了・Production Ready）
 - **要件**:
-  - Google Calendarとの双方向同期
-  - イベント作成、編集、削除
-  - 繰り返しイベントの管理
-  - カレンダー間の連携と統合表示
-- **実現方法**:
-  - Google Calendar API (v3) の実装
-  - OAuth 2.0スコープによる権限取得
-  - 専用サービスレイヤーとモデル設計
-  - Firebase Cloud Functionsでバックグラウンド同期処理
+  - Google Calendarとの双方向同期 ✅
+  - イベント作成、編集、削除 ✅
+  - ドラッグ&ドロップによる時間調整 ✅
+  - ダッシュボード統合・リアルタイム同期 ✅
+- **実装状況**:
+  - **Phase 1-2**: 週間ビュー・タイムライン表示・ビュー切り替え ✅
+  - **Phase 3**: ドラッグ&ドロップ機能・削除機能・設定統合 ✅
+  - **同期システム**: CalendarProvider統合・認証ループ解決 ✅
+  - **UI/UX**: レスポンシブデザイン・モダンマテリアル ✅
+- **実現技術**:
+  - Google Calendar API (v3) 完全統合 ✅
+  - GoogleCalendarService (Completer同期制御) ✅
+  - DraggableEventWidget・DragTargetCalendar ✅
+  - DeleteEventDialog・設定ページ統合 ✅
 
 ### 3.9 AIパーソナライゼーション（Google Cloud AI技術活用）
 - **要件**:
@@ -373,7 +459,7 @@ wellfin/
   - ガミフィケーション要素（バッジ、ストリーク）の実装
   - 行動科学に基づくポジティブ強化アルゴリズム
 
-### 3.12 通知・リマインダー
+### 3.12 通知・リマインダー（📅 実装予定）
 - **要件**:
   - 複数チャネル対応（アプリ内、プッシュ通知、メール）
   - 適応型通知タイミング（重要度に応じた頻度調整）
@@ -384,6 +470,9 @@ wellfin/
   - プラットフォーム別通知ハンドリング
   - 通知アクション機能の実装
   - 機械学習ベースの最適通知時間予測
+- **現在の状況**: 
+  - フロントエンド・バックエンドともに未実装
+  - ダッシュボード内の通知・設定ボタンは実装予定メッセージ表示
 
 ### 3.13 レポートと分析
 - **要件**:
@@ -442,7 +531,7 @@ wellfin/
 - **Cloud Functions**: イベント駆動型のバックエンド処理
 - **Firebase Authentication**: Google認証専用
 - **Cloud Firestore**: ユーザーデータとアプリケーションデータ
-- **Firebase Cloud Messaging**: プッシュ通知
+- **Firebase Cloud Messaging**: プッシュ通知（📅 実装予定）
 - **Firebase Analytics**: ユーザー行動分析
 
 ### 5.2 フロントエンド（Flutter/Firebase - 特別賞対象）
@@ -496,4 +585,4 @@ wellfin/
 
 ---
 
-*最終更新: 2025年6月29日 - AI Agent機能・Infrastructure as Code実装完了* 
+*最終更新: 2025年7月6日 - Phase 5 ダッシュボード改善・ログアウト機能実装完了* 

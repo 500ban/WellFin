@@ -86,14 +86,12 @@ class UserModel {
 class UserPreferences {
   final String language;
   final String theme;
-  final NotificationChannels notificationChannels;
   final List<int> productivityPeakHours;
   final int weekStartDay;
 
   UserPreferences({
     this.language = 'ja',
     this.theme = 'system',
-    required this.notificationChannels,
     this.productivityPeakHours = const [9, 10, 11, 14, 15, 16],
     this.weekStartDay = 1,
   });
@@ -102,7 +100,6 @@ class UserPreferences {
     return UserPreferences(
       language: map['language'] ?? 'ja',
       theme: map['theme'] ?? 'system',
-      notificationChannels: NotificationChannels.fromMap(map['notificationChannels'] ?? {}),
       productivityPeakHours: List<int>.from(map['productivityPeakHours'] ?? [9, 10, 11, 14, 15, 16]),
       weekStartDay: map['weekStartDay'] ?? 1,
     );
@@ -112,38 +109,23 @@ class UserPreferences {
     return {
       'language': language,
       'theme': theme,
-      'notificationChannels': notificationChannels.toMap(),
       'productivityPeakHours': productivityPeakHours,
       'weekStartDay': weekStartDay,
     };
   }
-}
 
-class NotificationChannels {
-  final bool app;
-  final bool push;
-  final bool email;
-
-  NotificationChannels({
-    this.app = true,
-    this.push = true,
-    this.email = false,
-  });
-
-  factory NotificationChannels.fromMap(Map<String, dynamic> map) {
-    return NotificationChannels(
-      app: map['app'] ?? true,
-      push: map['push'] ?? true,
-      email: map['email'] ?? false,
+  UserPreferences copyWith({
+    String? language,
+    String? theme,
+    List<int>? productivityPeakHours,
+    int? weekStartDay,
+  }) {
+    return UserPreferences(
+      language: language ?? this.language,
+      theme: theme ?? this.theme,
+      productivityPeakHours: productivityPeakHours ?? this.productivityPeakHours,
+      weekStartDay: weekStartDay ?? this.weekStartDay,
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'app': app,
-      'push': push,
-      'email': email,
-    };
   }
 }
 
@@ -178,33 +160,53 @@ class CalendarSync {
 }
 
 class UserStats {
+  final int totalTasks;
   final int completedTasks;
-  final double completionRate;
-  final int streakDays;
-  final int totalGoalsCompleted;
+  final int totalHabits;
+  final int completedHabits;
+  final int totalGoals;
+  final int completedGoals;
+  final int totalMinutesLogged;
+  final int currentStreak;
+  final int longestStreak;
 
   UserStats({
+    this.totalTasks = 0,
     this.completedTasks = 0,
-    this.completionRate = 0.0,
-    this.streakDays = 0,
-    this.totalGoalsCompleted = 0,
+    this.totalHabits = 0,
+    this.completedHabits = 0,
+    this.totalGoals = 0,
+    this.completedGoals = 0,
+    this.totalMinutesLogged = 0,
+    this.currentStreak = 0,
+    this.longestStreak = 0,
   });
 
   factory UserStats.fromMap(Map<String, dynamic> map) {
     return UserStats(
+      totalTasks: map['totalTasks'] ?? 0,
       completedTasks: map['completedTasks'] ?? 0,
-      completionRate: (map['completionRate'] ?? 0.0).toDouble(),
-      streakDays: map['streakDays'] ?? 0,
-      totalGoalsCompleted: map['totalGoalsCompleted'] ?? 0,
+      totalHabits: map['totalHabits'] ?? 0,
+      completedHabits: map['completedHabits'] ?? 0,
+      totalGoals: map['totalGoals'] ?? 0,
+      completedGoals: map['completedGoals'] ?? 0,
+      totalMinutesLogged: map['totalMinutesLogged'] ?? 0,
+      currentStreak: map['currentStreak'] ?? 0,
+      longestStreak: map['longestStreak'] ?? 0,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
+      'totalTasks': totalTasks,
       'completedTasks': completedTasks,
-      'completionRate': completionRate,
-      'streakDays': streakDays,
-      'totalGoalsCompleted': totalGoalsCompleted,
+      'totalHabits': totalHabits,
+      'completedHabits': completedHabits,
+      'totalGoals': totalGoals,
+      'completedGoals': completedGoals,
+      'totalMinutesLogged': totalMinutesLogged,
+      'currentStreak': currentStreak,
+      'longestStreak': longestStreak,
     };
   }
 } 

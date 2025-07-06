@@ -7,6 +7,7 @@ import '../widgets/add_goal_dialog.dart';
 import '../widgets/goal_filter_bar.dart';
 import '../widgets/goal_stats_widget.dart';
 import '../widgets/goal_detail_dialog.dart';
+import '../../../../shared/widgets/app_navigation_bar.dart';
 
 /// 目標一覧ページ
 class GoalListPage extends ConsumerStatefulWidget {
@@ -162,6 +163,7 @@ class _GoalListPageState extends ConsumerState<GoalListPage> {
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: const AppNavigationBar(currentIndex: -1),
     );
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import 'auth_provider.dart';
 
 // ユーザーデータプロバイダー
 final userDataProvider = FutureProvider.family<UserModel?, String>((ref, uid) async {
@@ -10,11 +10,36 @@ final userDataProvider = FutureProvider.family<UserModel?, String>((ref, uid) as
 
 // 現在のユーザーデータプロバイダー
 final currentUserDataProvider = Provider<AsyncValue<UserModel?>>((ref) {
-  final userId = ref.watch(userIdProvider);
-  if (userId != null) {
-    return ref.watch(userDataProvider(userId));
-  }
-  return const AsyncValue.data(null);
+  // 認証状態の変更を監視
+  final authState = ref.watch(authStateProvider);
+  return authState.when(
+    data: (user) {
+      if (user != null) {
+        return ref.watch(userDataProvider(user.uid));
+      }
+      return const AsyncValue.data(null);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (error, stack) => AsyncValue.error(error, stack),
+  );
+});
+
+// 🔧 autoUserProvider - 無限ループを防ぐ安全なプロバイダー
+final autoUserProvider = FutureProvider<UserModel?>((ref) async {
+  // 認証状態を取得
+  final authState = ref.watch(authStateProvider);
+  
+  return authState.when(
+    data: (user) async {
+      if (user != null) {
+        // Future.microtaskで循環参照を防ぐ
+        return Future.microtask(() => AuthService.getUserData(user.uid));
+      }
+      return null;
+    },
+    loading: () => null,
+    error: (error, stack) => null,
+  );
 });
 
 // ユーザー統計情報プロバイダー
@@ -59,7 +84,8 @@ class UserActions {
 
   // ユーザー統計情報を更新
   Future<void> updateUserStats(UserStats stats) async {
-    final userId = _ref.read(userIdProvider);
+    final authState = _ref.read(authStateProvider);
+    final userId = authState.value?.uid;
     if (userId != null) {
       await AuthService.updateUserStats(userId, stats);
       // プロバイダーを無効化して再読み込み
@@ -67,29 +93,10 @@ class UserActions {
     }
   }
 
-  // ユーザー設定を更新
-  Future<void> updateUserPreferences(UserPreferences preferences) async {
-    final userId = _ref.read(userIdProvider);
-    if (userId != null) {
-      await AuthService.updateUserPreferences(userId, preferences);
-      // プロバイダーを無効化して再読み込み
-      _ref.invalidate(userDataProvider(userId));
-    }
-  }
-
-  // カレンダー同期設定を更新
-  Future<void> updateCalendarSync(CalendarSync calendarSync) async {
-    final userId = _ref.read(userIdProvider);
-    if (userId != null) {
-      await AuthService.updateCalendarSync(userId, calendarSync);
-      // プロバイダーを無効化して再読み込み
-      _ref.invalidate(userDataProvider(userId));
-    }
-  }
-
   // ユーザー情報を更新
   Future<void> updateUserData(Map<String, dynamic> data) async {
-    final userId = _ref.read(userIdProvider);
+    final authState = _ref.read(authStateProvider);
+    final userId = authState.value?.uid;
     if (userId != null) {
       await AuthService.updateUserData(userId, data);
       // プロバイダーを無効化して再読み込み
@@ -99,20 +106,12 @@ class UserActions {
 
   // ユーザーデータを再読み込み
   void refreshUserData() {
-    final userId = _ref.read(userIdProvider);
+    final authState = _ref.read(authStateProvider);
+    final userId = authState.value?.uid;
     if (userId != null) {
       _ref.invalidate(userDataProvider(userId));
     }
   }
 }
 
-// ユーザーIDプロバイダー（auth_provider.dartから参照）
-final userIdProvider = Provider<String?>((ref) {
-  final user = ref.watch(currentUserProvider);
-  return user?.uid;
-});
-
-// 現在のユーザープロバイダー（Firebase AuthのUser型）
-final currentUserProvider = Provider<User?>((ref) {
-  return AuthService.currentUser;
-}); 
+ 
