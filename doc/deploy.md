@@ -209,10 +209,17 @@ terraform apply
 ```bash
 # Functions手動デプロイ
 cd functions
-gcloud functions deploy wellfin-ai-function \
-  --runtime nodejs20 \
-  --trigger-http \
-  --allow-unauthenticated \
+```
+
+```bash
+gcloud auth login
+```
+
+```bash
+gcloud functions deploy wellfin-ai-function
+  --runtime nodejs22
+  --trigger-http
+  --allow-unauthenticated
   --region asia-northeast1
 ```
 

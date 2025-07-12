@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import '../../core/config/google_cloud_config.dart';
 import '../models/task_model.dart';
 import '../models/user_model.dart';
+import '../../features/analytics/presentation/providers/analytics_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
@@ -237,6 +238,84 @@ class Recommendation {
       actionable: json['actionable'] ?? false,
       estimatedImpact: json['estimatedImpact'] ?? 'medium',
       status: json['status'] ?? 'suggested',
+    );
+  }
+}
+
+/// 分析データに基づくAI最適化提案
+class AnalyticsOptimizationResult {
+  final List<Recommendation> recommendations;
+  final ScheduleOptimization scheduleOptimization;
+  final ProductivityInsights insights;
+  final ExecutionResult execution;
+  final Map<String, dynamic> metadata;
+
+  AnalyticsOptimizationResult({
+    required this.recommendations,
+    required this.scheduleOptimization,
+    required this.insights,
+    required this.execution,
+    required this.metadata,
+  });
+
+  factory AnalyticsOptimizationResult.fromJson(Map<String, dynamic> json) {
+    return AnalyticsOptimizationResult(
+      recommendations: (json['recommendations'] as List? ?? [])
+          .map((item) => Recommendation.fromJson(item))
+          .toList(),
+      scheduleOptimization: ScheduleOptimization.fromJson(json['scheduleOptimization'] ?? {}),
+      insights: ProductivityInsights.fromJson(json['insights'] ?? {}),
+      execution: ExecutionResult.fromJson(json['execution'] ?? {}),
+      metadata: json['metadata'] ?? {},
+    );
+  }
+}
+
+class ScheduleOptimization {
+  final List<String> timeSlotOptimizations;
+  final List<String> categoryBalancing;
+  final List<String> efficiencyImprovements;
+  final double potentialEfficiencyGain;
+
+  ScheduleOptimization({
+    required this.timeSlotOptimizations,
+    required this.categoryBalancing,
+    required this.efficiencyImprovements,
+    required this.potentialEfficiencyGain,
+  });
+
+  factory ScheduleOptimization.fromJson(Map<String, dynamic> json) {
+    return ScheduleOptimization(
+      timeSlotOptimizations: List<String>.from(json['timeSlotOptimizations'] ?? []),
+      categoryBalancing: List<String>.from(json['categoryBalancing'] ?? []),
+      efficiencyImprovements: List<String>.from(json['efficiencyImprovements'] ?? []),
+      potentialEfficiencyGain: (json['potentialEfficiencyGain'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+class ProductivityInsights {
+  final List<String> peakPerformanceTimes;
+  final List<String> lowProductivityTimes;
+  final List<String> habitRecommendations;
+  final List<String> goalStrategies;
+  final double overallScore;
+
+  ProductivityInsights({
+    required this.peakPerformanceTimes,
+    required this.lowProductivityTimes,
+    required this.habitRecommendations,
+    required this.goalStrategies,
+    required this.overallScore,
+  });
+
+  factory ProductivityInsights.fromJson(Map<String, dynamic> json) {
+    return ProductivityInsights(
+      peakPerformanceTimes: List<String>.from(json['peakPerformanceTimes'] ?? []),
+      lowProductivityTimes: List<String>.from(json['lowProductivityTimes'] ?? []),
+      habitRecommendations: List<String>.from(json['habitRecommendations'] ?? []),
+      goalStrategies: List<String>.from(json['goalStrategies'] ?? []),
+      overallScore: (json['overallScore'] ?? 0.0).toDouble(),
     );
   }
 }
@@ -833,5 +912,265 @@ class AIAgentService {
       task.procrastinationRisk,
       task.tags.length.toDouble(),
     ];
+  }
+
+  /// 分析データに基づくAI最適化提案を取得
+  static Future<AnalyticsOptimizationResult> getAnalyticsOptimization(
+    AnalyticsData analyticsData,
+    UserModel user,
+  ) async {
+    try {
+      final String baseUrl = _baseUrl;
+      final String apiKey = _apiKey;
+
+      final requestBody = {
+        'analyticsData': {
+          'todayCompletionRate': analyticsData.todayCompletionRate,
+          'todayEfficiencyScore': analyticsData.todayEfficiencyScore,
+          'todayPlannedHours': analyticsData.todayPlannedHours,
+          'todayActualHours': analyticsData.todayActualHours,
+          'weeklyProgress': analyticsData.weeklyProgress,
+          'categoryDistribution': analyticsData.categoryDistribution,
+          'hourlyDistribution': analyticsData.hourlyDistribution,
+          'focusTimeHours': analyticsData.focusTimeHours,
+          'interruptionCount': analyticsData.interruptionCount,
+          'multitaskingRate': analyticsData.multitaskingRate,
+          'totalTasks': analyticsData.totalTasks,
+          'completedTasks': analyticsData.completedTasks,
+          'totalHabits': analyticsData.totalHabits,
+          'completedHabits': analyticsData.completedHabits,
+          'totalGoals': analyticsData.totalGoals,
+          'completedGoals': analyticsData.completedGoals,
+        },
+        'userProfile': {
+          'userId': user.uid,
+          'preferences': {
+            'workStyle': 'balanced', // ユーザー設定から取得（将来実装）
+            'productivityGoals': ['efficiency', 'consistency'],
+          },
+        },
+        'optimizationGoals': [
+          'improve_time_management',
+          'reduce_procrastination',
+          'increase_focus_time',
+          'balance_work_categories',
+        ],
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/recommendations'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // AI Agent APIからの実際のレスポンスを待ってAnalyticsOptimizationResult.fromJsonで処理
+        return AnalyticsOptimizationResult.fromJson(data);
+      } else if (response.statusCode == 503) {
+        // サービス利用不可の場合は模擬データを返す
+        return _generateMockOptimizationResult(analyticsData);
+      } else {
+        _logger.w('AI Agent API error: ${response.statusCode}');
+        // エラーの場合も模擬データを返す
+        return _generateMockOptimizationResult(analyticsData);
+      }
+    } catch (e) {
+      _logger.e('Error getting analytics optimization: $e');
+      // エラーの場合は模擬データを返す
+      return _generateMockOptimizationResult(analyticsData);
+    }
+  }
+
+  /// 模擬的なAI最適化提案データを生成
+  static AnalyticsOptimizationResult _generateMockOptimizationResult(AnalyticsData analyticsData) {
+    final List<Recommendation> recommendations = [];
+    
+    // 完了率に基づく提案
+    if (analyticsData.todayCompletionRate < 0.7) {
+      recommendations.add(Recommendation(
+        id: 'task_completion_${DateTime.now().millisecondsSinceEpoch}',
+        type: 'task_management',
+        title: '📋 タスク分割の提案',
+        description: '大きなタスクを小さな単位に分割することで、完了率を向上させることができます。',
+        priority: 'high',
+        actionable: true,
+        estimatedImpact: 'high',
+        status: 'suggested',
+      ));
+    }
+
+    // 効率性スコアに基づく提案
+    if (analyticsData.todayEfficiencyScore < 7.0) {
+      recommendations.add(Recommendation(
+        id: 'time_management_${DateTime.now().millisecondsSinceEpoch}',
+        type: 'time_management',
+        title: '⏰ 時間管理の改善',
+        description: '計画時間と実際時間の差を縮めるため、より正確な時間見積もりを心がけましょう。',
+        priority: 'medium',
+        actionable: true,
+        estimatedImpact: 'medium',
+        status: 'suggested',
+      ));
+    }
+
+    // 集中時間に基づく提案
+    if (analyticsData.focusTimeHours < 4.0) {
+      recommendations.add(Recommendation(
+        id: 'focus_improvement_${DateTime.now().millisecondsSinceEpoch}',
+        type: 'focus_improvement',
+        title: '🎯 集中時間の確保',
+        description: '集中時間を増やすため、まとまった時間ブロックを確保することをお勧めします。',
+        priority: 'high',
+        actionable: true,
+        estimatedImpact: 'high',
+        status: 'suggested',
+      ));
+    }
+
+    // 中断回数に基づく提案
+    if (analyticsData.interruptionCount > 10) {
+      recommendations.add(Recommendation(
+        id: 'interruption_reduction_${DateTime.now().millisecondsSinceEpoch}',
+        type: 'interruption_reduction',
+        title: '🔕 中断の削減',
+        description: '通知をオフにする、作業環境を整えるなどして中断を減らしましょう。',
+        priority: 'medium',
+        actionable: true,
+        estimatedImpact: 'medium',
+        status: 'suggested',
+      ));
+    }
+
+    // 週間進捗に基づく提案
+    final weeklyAverage = analyticsData.weeklyProgress.isEmpty 
+        ? 0.0 
+        : analyticsData.weeklyProgress.reduce((a, b) => a + b) / analyticsData.weeklyProgress.length;
+    
+    if (weeklyAverage < 0.8) {
+      recommendations.add(Recommendation(
+        id: 'consistency_improvement_${DateTime.now().millisecondsSinceEpoch}',
+        type: 'consistency_improvement',
+        title: '📈 継続性の向上',
+        description: '週間を通じた安定したパフォーマンスを維持するため、毎日の習慣を見直しましょう。',
+        priority: 'medium',
+        actionable: true,
+        estimatedImpact: 'medium',
+        status: 'suggested',
+      ));
+    }
+
+    return AnalyticsOptimizationResult(
+      recommendations: recommendations,
+      scheduleOptimization: ScheduleOptimization(
+        timeSlotOptimizations: [
+          '午前中の集中時間を増やすことで、効率を${(analyticsData.todayEfficiencyScore < 7 ? 15 : 10)}%向上できます',
+          '定期的な休憩を取ることで、長期的な生産性を維持できます',
+          '似たカテゴリのタスクをまとめて処理することで、コンテキストスイッチを減らせます',
+        ],
+        categoryBalancing: [
+          '仕事と個人タスクのバランスを${(analyticsData.categoryDistribution['仕事'] ?? 0) > 6 ? '調整' : '維持'}することをお勧めします',
+          '学習時間を${(analyticsData.categoryDistribution['学習'] ?? 0) < 2 ? '増やす' : '維持する'}と良いでしょう',
+        ],
+        efficiencyImprovements: [
+          'ポモドーロテクニックを使用して集中時間を最大化',
+          'タスクの優先度付けを明確にして重要なタスクに集中',
+          '同じ時間帯に同種のタスクをグループ化',
+        ],
+        potentialEfficiencyGain: analyticsData.todayEfficiencyScore < 7 ? 0.25 : 0.15,
+      ),
+      insights: ProductivityInsights(
+        peakPerformanceTimes: _generatePeakTimes(analyticsData.hourlyDistribution),
+        lowProductivityTimes: _generateLowTimes(analyticsData.hourlyDistribution),
+        habitRecommendations: [
+          '朝のルーティンを確立して一日を効率的に開始',
+          '定期的な運動で集中力を向上',
+          '十分な睡眠で翌日のパフォーマンスを最適化',
+        ],
+        goalStrategies: [
+          '週次レビューで進捗を確認し軌道修正',
+          '大きな目標を小さなマイルストーンに分割',
+          '達成した目標を記録してモチベーション維持',
+        ],
+        overallScore: _calculateOverallProductivityScore(analyticsData),
+      ),
+      execution: ExecutionResult(
+        status: 'completed',
+        actions: [
+          ExecutionAction(
+            type: 'analysis_generated',
+            description: '分析データに基づく最適化提案を生成しました',
+            details: {'recommendationCount': recommendations.length},
+          ),
+        ],
+        recommendations: [
+          '提案された改善策を段階的に実施してください',
+          '変更の効果を1週間後に確認することをお勧めします',
+        ],
+      ),
+      metadata: {
+        'generatedAt': DateTime.now().toIso8601String(),
+        'analysisVersion': '1.0',
+        'modelType': 'mock_optimization',
+        'dataPoints': analyticsData.totalTasks + analyticsData.totalHabits + analyticsData.totalCalendarEvents,
+      },
+    );
+  }
+
+  /// 時間別分布から最高パフォーマンス時間を特定
+  static List<String> _generatePeakTimes(Map<int, int> hourlyDistribution) {
+    if (hourlyDistribution.isEmpty) return ['9:00-11:00', '14:00-16:00'];
+    
+    final sortedHours = hourlyDistribution.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    final peakHours = sortedHours.take(2).map((entry) {
+      final hour = entry.key;
+      return '${hour}:00-${hour + 1}:00';
+    }).toList();
+    
+    return peakHours.isEmpty ? ['9:00-11:00', '14:00-16:00'] : peakHours;
+  }
+
+  /// 時間別分布から低生産性時間を特定
+  static List<String> _generateLowTimes(Map<int, int> hourlyDistribution) {
+    if (hourlyDistribution.isEmpty) return ['13:00-14:00', '16:00-17:00'];
+    
+    final sortedHours = hourlyDistribution.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    
+    final lowHours = sortedHours.take(2).map((entry) {
+      final hour = entry.key;
+      return '${hour}:00-${hour + 1}:00';
+    }).toList();
+    
+    return lowHours.isEmpty ? ['13:00-14:00', '16:00-17:00'] : lowHours;
+  }
+
+  /// 総合生産性スコアを計算
+  static double _calculateOverallProductivityScore(AnalyticsData analyticsData) {
+    double score = 0.0;
+    
+    // 完了率（40%の重み）
+    score += analyticsData.todayCompletionRate * 40;
+    
+    // 効率性スコア（30%の重み）
+    score += (analyticsData.todayEfficiencyScore / 10) * 30;
+    
+    // 集中時間（20%の重み）
+    final focusRatio = analyticsData.todayActualHours > 0 
+        ? (analyticsData.focusTimeHours / analyticsData.todayActualHours).clamp(0.0, 1.0)
+        : 0.0;
+    score += focusRatio * 20;
+    
+    // 中断の少なさ（10%の重み）
+    final interruptionScore = (1.0 - (analyticsData.interruptionCount / 20).clamp(0.0, 1.0));
+    score += interruptionScore * 10;
+    
+    return score.clamp(0.0, 100.0);
   }
 } 

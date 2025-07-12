@@ -7,6 +7,7 @@ import 'core/config/firebase_config.dart';
 import 'shared/providers/auth_provider.dart';
 import 'shared/providers/user_provider.dart';
 import 'shared/services/android_service.dart';
+import 'shared/services/fcm_service.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/dashboard/presentation/pages/dashboard_page.dart';
 import 'features/calendar/presentation/pages/calendar_page.dart';
@@ -22,12 +23,17 @@ void main() async {
   // Firebase初期化
   await FirebaseConfig.initialize();
   
+  // 通知サービス初期化
+  await _initializeNotificationServices();
+  
   runApp(const ProviderScope(child: WellFinApp()));
 }
 
 /// Android固有の初期化処理
 Future<void> _initializeAndroid() async {
   if (!AndroidService.isAndroid) return;
+
+  print('🚀 [Init] Starting Android initialization...');
 
   // システムUIの設定
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -44,7 +50,42 @@ Future<void> _initializeAndroid() async {
   ]);
 
   // 通知権限の要求
-  await AndroidService.requestNotificationPermission();
+  print('🔔 [Init] Requesting notification permission...');
+  final permissionGranted = await AndroidService.requestNotificationPermission();
+  print('🔔 [Init] Notification permission result: $permissionGranted');
+}
+
+/// 通知サービス初期化処理
+Future<void> _initializeNotificationServices() async {
+  try {
+    print('🔔 [Init] Starting notification services initialization...');
+    
+    // FCMService初期化
+    print('🔔 [Init] Initializing FCMService...');
+    final fcmService = FCMService();
+    final fcmInitialized = await fcmService.initialize(
+      onMessageReceived: (message) {
+        print('🔔 [FCM] Message received: ${message.notification?.title}');
+      },
+      onMessageOpenedApp: (message) {
+        print('🔔 [FCM] Message opened app: ${message.notification?.title}');
+      },
+      onTokenRefresh: (token) {
+        print('🔔 [FCM] Token refreshed: $token');
+      },
+    );
+    
+    if (fcmInitialized) {
+      print('🔔 [Init] FCMService initialized successfully');
+      print('🔔 [FCM] Token: ${fcmService.currentToken}');
+    } else {
+      print('🔔 [Init] FCMService initialization failed');
+    }
+    
+    print('🔔 [Init] Notification services initialization completed');
+  } catch (e) {
+    print('🔔 [Init] Notification services initialization error: $e');
+  }
 }
 
 class WellFinApp extends ConsumerWidget {

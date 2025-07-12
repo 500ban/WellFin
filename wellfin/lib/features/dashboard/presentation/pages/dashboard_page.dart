@@ -1,12 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../tasks/presentation/providers/task_provider.dart';
 import '../../../habits/presentation/providers/habit_provider.dart';
 import '../../../goals/presentation/providers/goal_provider.dart';
 import '../../../calendar/presentation/providers/calendar_provider.dart';
+import '../../../notifications/presentation/pages/notification_settings_page.dart';
 import '../widgets/dashboard_widgets.dart';
 import '../../../../shared/widgets/app_navigation_bar.dart';
 
@@ -102,19 +104,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
     final isTablet = screenSize.width > 768;
     final isDesktop = screenSize.width > 1200;
 
-    return Scaffold(
-      body: userData.when(
-        data: (user) {
-          if (user == null) {
-            return const Center(child: Text('ユーザー情報が見つかりません'));
-          }
-          return _buildMainContent(context, user, isTablet, isDesktop);
-        },
-        loading: () => _buildLoadingState(),
-        error: (error, stack) => _buildErrorState(error),
-      ),
-      bottomNavigationBar: isDesktop ? null : const AppNavigationBar(currentIndex: 0),
-      floatingActionButton: _showScrollToTop ? ScrollToTopFab(scrollController: _scrollController, showSettingsButton: true) : null,
+    return userData.when(
+      loading: () => _buildLoadingState(),
+      error: (error, stack) => _buildErrorState(error),
+      data: (user) {
+        if (user == null) {
+          // データがnullでもローディング画面を表示
+          return _buildLoadingState();
+        }
+        // データが揃ったときだけ本体UIを描画
+        return Scaffold(
+          backgroundColor: const Color(0xFFE3F2FD),
+          body: _buildMainContent(context, user, isTablet, isDesktop),
+          bottomNavigationBar: isDesktop ? null : const AppNavigationBar(currentIndex: 0),
+          floatingActionButton: _showScrollToTop ? ScrollToTopFab(scrollController: _scrollController, showSettingsButton: true) : null,
+        );
+      },
     );
   }
 
@@ -213,14 +218,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
                                 fontSize: 14,
                               ),
                             ),
-                        Text(
-                              '${user.displayName}さん',
+                        AutoSizeText(
+                          '${user.displayName}さん',
+                          maxLines: 1,
+                          minFontSize: 12,
                           style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                                   ],
             ),
                       ),
@@ -247,10 +255,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           child: IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                           onPressed: () {
-              // 通知一覧を表示
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('通知機能は準備中です')),
-                );
+              // 通知設定画面を表示
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationSettingsPage(),
+                ),
+              );
               },
             ),
         ),
@@ -329,9 +340,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       sliver: SliverList(
         delegate: SliverChildListDelegate([
           const DashboardStatsCard(),
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
           const DashboardQuickActionsCard(),
-                        const SizedBox(height: 16),
+          const SizedBox(height: 16),
           const DashboardAIRecommendationsCard(),
           const SizedBox(height: 16),
           const DashboardTasksCard(),
@@ -350,16 +361,34 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
 
 
   Widget _buildLoadingState() {
-    return const Scaffold(
-      body: Center(
-      child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
         children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('ダッシュボードを読み込み中...'),
-          ],
-        ),
+          // 本番と同じ背景グラデーション
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF2196F3),
+                  Color(0xFF1976D2),
+                ],
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('ダッシュボードを読み込み中...', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

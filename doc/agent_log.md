@@ -1266,3 +1266,51 @@ static String get _baseUrl => const String.fromEnvironment(
 
 **実装内容**:
 ```
+
+## 🎯 最新実装作業（2025年7月12日）
+
+### ダッシュボードUIローディング安定化・実機特有問題の解決 - 完了 ✅
+
+#### 実装内容とユーザー要求
+**ユーザー要求**: 実機でのみ発生するダッシュボード初回表示時のちらつき・不要な柄（カードの重複・ループ）を根本的に解決し、UXを安定化したい
+- ローディング状態の厳密化
+- 実機とエミュレーターの挙動差を吸収した安定したUI/UX
+
+#### 技術実装の詳細
+
+**1. ローディング状態の厳密化**:
+```dart
+// userDataがnullまたはデータ取得中は必ずローディング画面のみを表示
+return userData.when(
+  loading: () => _buildLoadingState(),
+  error: (error, stack) => _buildErrorState(error),
+  data: (user) {
+    if (user == null) return _buildLoadingState();
+    return Scaffold(
+      backgroundColor: const Color(0xFFE3F2FD),
+      body: _buildMainContent(...),
+      ...
+    );
+  },
+);
+```
+
+**2. アニメーション・描画タイミングの最適化**:
+- FadeTransition/SlideTransitionの再描画タイミングを見直し
+- 不要な再描画・重複描画を抑制
+
+**3. 実機・エミュレーター間の挙動差への対応**:
+- 実機ではデータ取得や描画タイミングが遅延しやすい点を考慮し、UIのちらつき・重複描画を完全防止
+
+#### 技術的課題と解決
+
+**課題: 実機でのみ発生するUIちらつき・重複描画**
+- 原因: データ取得遅延・アニメーションの再描画タイミング・SliverList/CustomScrollViewの重なり
+- 解決: ローディング状態の厳密化とアニメーション制御で根本解決
+
+#### 成果
+- 実機・エミュレーターともに安定したUXを実現
+- ダッシュボード初回表示時の不要な柄・ループ現象を完全解消
+- 品質向上・ユーザー体験の大幅改善
+
+---

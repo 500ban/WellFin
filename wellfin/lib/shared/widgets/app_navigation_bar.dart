@@ -8,6 +8,7 @@ import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/goals/presentation/pages/goal_list_page.dart';
 import '../../features/habits/presentation/pages/habit_list_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/notifications/presentation/pages/notification_settings_page.dart';
 import '../providers/auth_provider.dart';
 
 // ナビゲーションの状態を管理するプロバイダー
@@ -350,8 +351,11 @@ class AppSettingsBottomSheet extends ConsumerWidget {
                   backgroundColor: Colors.orange.withValues(alpha: 0.05),
                   onTap: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('通知設定機能は準備中です')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationSettingsPage(),
+                      ),
                     );
                   },
                 ),
