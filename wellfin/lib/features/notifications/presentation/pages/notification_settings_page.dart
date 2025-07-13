@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../shared/providers/notification_settings_provider.dart';
+import '../../../../shared/providers/notification_settings_provider.dart' show notificationSettingsProvider, NotificationSettingsProvider;
 import '../../../../shared/models/notification_settings.dart';
 import '../widgets/notification_settings_card.dart';
 import '../widgets/time_picker_widget.dart';

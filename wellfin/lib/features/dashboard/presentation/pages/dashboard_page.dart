@@ -114,7 +114,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
         }
         // データが揃ったときだけ本体UIを描画
         return Scaffold(
-          backgroundColor: const Color(0xFFE3F2FD),
           body: _buildMainContent(context, user, isTablet, isDesktop),
           bottomNavigationBar: isDesktop ? null : const AppNavigationBar(currentIndex: 0),
           floatingActionButton: _showScrollToTop ? ScrollToTopFab(scrollController: _scrollController, showSettingsButton: true) : null,

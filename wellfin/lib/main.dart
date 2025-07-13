@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 
 import 'core/config/firebase_config.dart';
 import 'shared/providers/auth_provider.dart';
@@ -12,28 +13,35 @@ import 'features/auth/presentation/pages/login_page.dart';
 import 'features/dashboard/presentation/pages/dashboard_page.dart';
 import 'features/calendar/presentation/pages/calendar_page.dart';
 import 'features/analytics/presentation/pages/analytics_page.dart';
+import 'features/analytics/presentation/pages/weekly_report_page.dart';
+import 'features/analytics/presentation/pages/monthly_report_page.dart';
+import 'features/analytics/presentation/pages/productivity_patterns_page.dart';
+import 'features/analytics/presentation/pages/goal_progress_tracking_page.dart';
 import 'shared/widgets/loading_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Logger初期化
+  final logger = Logger();
+  
   // Android固有の初期化
-  await _initializeAndroid();
+  await _initializeAndroid(logger);
   
   // Firebase初期化
   await FirebaseConfig.initialize();
   
   // 通知サービス初期化
-  await _initializeNotificationServices();
+  await _initializeNotificationServices(logger);
   
   runApp(const ProviderScope(child: WellFinApp()));
 }
 
 /// Android固有の初期化処理
-Future<void> _initializeAndroid() async {
+Future<void> _initializeAndroid(Logger logger) async {
   if (!AndroidService.isAndroid) return;
 
-  print('🚀 [Init] Starting Android initialization...');
+  logger.d('🚀 [Init] Starting Android initialization...');
 
   // システムUIの設定
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -50,41 +58,41 @@ Future<void> _initializeAndroid() async {
   ]);
 
   // 通知権限の要求
-  print('🔔 [Init] Requesting notification permission...');
+  logger.d('🔔 [Init] Requesting notification permission...');
   final permissionGranted = await AndroidService.requestNotificationPermission();
-  print('🔔 [Init] Notification permission result: $permissionGranted');
+  logger.d('🔔 [Init] Notification permission result: $permissionGranted');
 }
 
 /// 通知サービス初期化処理
-Future<void> _initializeNotificationServices() async {
+Future<void> _initializeNotificationServices(Logger logger) async {
   try {
-    print('🔔 [Init] Starting notification services initialization...');
+    logger.d('🔔 [Init] Starting notification services initialization...');
     
     // FCMService初期化
-    print('🔔 [Init] Initializing FCMService...');
+    logger.d('🔔 [Init] Initializing FCMService...');
     final fcmService = FCMService();
     final fcmInitialized = await fcmService.initialize(
       onMessageReceived: (message) {
-        print('🔔 [FCM] Message received: ${message.notification?.title}');
+        logger.d('🔔 [FCM] Message received: ${message.notification?.title}');
       },
       onMessageOpenedApp: (message) {
-        print('🔔 [FCM] Message opened app: ${message.notification?.title}');
+        logger.d('🔔 [FCM] Message opened app: ${message.notification?.title}');
       },
       onTokenRefresh: (token) {
-        print('🔔 [FCM] Token refreshed: $token');
+        logger.d('🔔 [FCM] Token refreshed: $token');
       },
     );
     
     if (fcmInitialized) {
-      print('🔔 [Init] FCMService initialized successfully');
-      print('🔔 [FCM] Token: ${fcmService.currentToken}');
+      logger.d('🔔 [Init] FCMService initialized successfully');
+      logger.d('🔔 [FCM] Token: ${fcmService.currentToken}');
     } else {
-      print('🔔 [Init] FCMService initialization failed');
+      logger.d('🔔 [Init] FCMService initialization failed');
     }
     
-    print('🔔 [Init] Notification services initialization completed');
+    logger.d('🔔 [Init] Notification services initialization completed');
   } catch (e) {
-    print('🔔 [Init] Notification services initialization error: $e');
+    logger.e('🔔 [Init] Notification services initialization error: $e');
   }
 }
 
@@ -138,7 +146,6 @@ class WellFinApp extends ConsumerWidget {
                   loading: () => const LoadingWidget(),
                   error: (error, stack) {
                     // エラーの場合はログインページに戻す
-                    print('User data loading error: $error');
                     return const LoginPage();
                   },
                 );
@@ -162,6 +169,10 @@ class WellFinApp extends ConsumerWidget {
         '/dashboard': (context) => const DashboardPage(),
         '/calendar': (context) => const CalendarPage(),
         '/analytics': (context) => const AnalyticsPage(),
+        '/weekly-report': (context) => const WeeklyReportPage(),
+        '/monthly-report': (context) => const MonthlyReportPage(),
+        '/productivity-patterns': (context) => const ProductivityPatternsPage(),
+        '/goal-progress': (context) => const GoalProgressTrackingPage(),
       },
     );
   }

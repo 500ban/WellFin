@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:logger/logger.dart';
-import '../providers/notification_settings_provider.dart';
+import '../providers/notification_settings_provider.dart' show notificationSettingsProvider;
 import 'fcm_service.dart';
 
 /// 📡 プッシュ通知スケジューラー

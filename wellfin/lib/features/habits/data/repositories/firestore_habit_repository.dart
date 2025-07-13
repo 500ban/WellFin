@@ -25,18 +25,13 @@ class FirestoreHabitRepository implements HabitRepository {
   @override
   Future<dartz.Either<String, Habit>> createHabit(Habit habit) async {
     try {
-      print('[DEBUG] createHabit: userId=$_currentUserId, habit=$habit');
       final habitModel = HabitModel.fromDomain(habit);
-      print('[DEBUG] Firestoreに書き込むデータ: ${habitModel.toFirestore()}');
       final docRef = await _getHabitsCollection().add(habitModel.toFirestore());
-      print('[DEBUG] Firestore書き込み成功: docId=${docRef.id}');
       // 作成された習慣を取得して返す
       final doc = await docRef.get();
       final createdHabit = HabitModel.fromFirestore(doc).toDomain();
-      print('[DEBUG] 作成習慣: $createdHabit');
       return dartz.Right(createdHabit);
-    } catch (e, st) {
-      print('[ERROR] createHabit失敗: $e\n$st');
+    } catch (e) {
       return dartz.Left('習慣の作成に失敗しました: $e');
     }
   }

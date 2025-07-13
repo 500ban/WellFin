@@ -35,6 +35,17 @@ class GetTodayTasksUseCase {
   }
 }
 
+/// 全タスク取得ユースケース
+class GetAllTasksUseCase {
+  final TaskRepository repository;
+
+  GetAllTasksUseCase(this.repository);
+
+  Future<dartz.Either<String, List<Task>>> call(String userId) async {
+    return await repository.getAllTasks(userId);
+  }
+}
+
 /// 指定日のタスク取得ユースケース
 class GetTasksByDateUseCase {
   final TaskRepository repository;

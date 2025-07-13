@@ -9,6 +9,7 @@ import '../../features/goals/presentation/pages/goal_list_page.dart';
 import '../../features/habits/presentation/pages/habit_list_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/notifications/presentation/pages/notification_settings_page.dart';
+import '../../features/testing/presentation/pages/integration_test_page.dart';
 import '../providers/auth_provider.dart';
 
 // ナビゲーションの状態を管理するプロバイダー
@@ -131,8 +132,12 @@ class AppNavigationBar extends ConsumerWidget {
   void _defaultNavigate(BuildContext context, WidgetRef ref, int index) {
     ref.read(navigationStateProvider.notifier).state = index;
     
+    // デバッグログを追加
+    print('AppNavigationBar: Navigating to index $index');
+    
     switch (index) {
       case 0:
+        print('AppNavigationBar: Navigating to DashboardPage');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const DashboardPage()),
@@ -140,18 +145,21 @@ class AppNavigationBar extends ConsumerWidget {
         );
         break;
       case 1:
+        print('AppNavigationBar: Navigating to TaskListPage');
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const TaskListPage()),
         );
         break;
       case 2:
+        print('AppNavigationBar: Navigating to CalendarPage');
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const CalendarPage()),
         );
         break;
       case 3:
+        print('AppNavigationBar: Navigating to AnalyticsPage');
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AnalyticsPage()),
@@ -367,6 +375,23 @@ class AppSettingsBottomSheet extends ConsumerWidget {
                   onTap: () {
                     Navigator.pop(context);
                     _showAboutDialog(context);
+                  },
+                ),
+                _buildSettingsItem(
+                  context,
+                  icon: Icons.bug_report,
+                  title: '統合テスト',
+                  subtitle: '分析・通知機能の統合テスト',
+                  iconColor: Colors.purple,
+                  backgroundColor: Colors.purple.withValues(alpha: 0.05),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const IntegrationTestPage(),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 24),

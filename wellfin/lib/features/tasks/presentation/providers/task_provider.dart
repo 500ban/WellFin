@@ -7,21 +7,23 @@ import '../../domain/usecases/task_usecases.dart';
 import '../../data/repositories/firestore_task_repository.dart';
 
 /// タスクプロバイダー
-final taskProvider = StateNotifierProvider<TaskNotifier, AsyncValue<List<Task>>>(
-  (ref) => TaskNotifier(
+final taskProvider = StateNotifierProvider<TaskNotifier, AsyncValue<List<Task>>>((ref) {
+  return TaskNotifier(
     createTaskUseCase: ref.read(createTaskUseCaseProvider),
     getTodayTasksUseCase: ref.read(getTodayTasksUseCaseProvider),
+    getAllTasksUseCase: ref.read(getAllTasksUseCaseProvider),
     updateTaskUseCase: ref.read(updateTaskUseCaseProvider),
     deleteTaskUseCase: ref.read(deleteTaskUseCaseProvider),
     completeTaskUseCase: ref.read(completeTaskUseCaseProvider),
     uncompleteTaskUseCase: ref.read(uncompleteTaskUseCaseProvider),
-  ),
-);
+  );
+});
 
 /// タスクノーティファイア
 class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
   final CreateTaskUseCase createTaskUseCase;
   final GetTodayTasksUseCase getTodayTasksUseCase;
+  final GetAllTasksUseCase getAllTasksUseCase;
   final UpdateTaskUseCase updateTaskUseCase;
   final DeleteTaskUseCase deleteTaskUseCase;
   final CompleteTaskUseCase completeTaskUseCase;
@@ -30,6 +32,7 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
   TaskNotifier({
     required this.createTaskUseCase,
     required this.getTodayTasksUseCase,
+    required this.getAllTasksUseCase,
     required this.updateTaskUseCase,
     required this.deleteTaskUseCase,
     required this.completeTaskUseCase,
@@ -49,11 +52,16 @@ class TaskNotifier extends StateNotifier<AsyncValue<List<Task>>> {
       return;
     }
     
-    final result = await getTodayTasksUseCase(userId);
+    // 全タスクを取得（分析ダッシュボード用）
+    final result = await getAllTasksUseCase(userId);
     
-    state = result.fold(
-      (error) => AsyncValue.error(error, StackTrace.current),
-      (tasks) => AsyncValue.data(tasks),
+    result.fold(
+      (error) {
+        state = AsyncValue.error(error, StackTrace.current);
+      },
+      (tasks) {
+        state = AsyncValue.data(tasks);
+      },
     );
   }
 
@@ -212,6 +220,10 @@ final createTaskUseCaseProvider = Provider<CreateTaskUseCase>((ref) {
 
 final getTodayTasksUseCaseProvider = Provider<GetTodayTasksUseCase>((ref) {
   return GetTodayTasksUseCase(_firestoreTaskRepository);
+});
+
+final getAllTasksUseCaseProvider = Provider<GetAllTasksUseCase>((ref) {
+  return GetAllTasksUseCase(_firestoreTaskRepository);
 });
 
 final updateTaskUseCaseProvider = Provider<UpdateTaskUseCase>((ref) {

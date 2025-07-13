@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_settings.dart';
-import '../providers/notification_settings_provider.dart';
+import '../providers/notification_settings_provider.dart' show notificationSettingsProvider;
 import '../../features/tasks/domain/entities/task.dart';
 
 /// 🔔 タスク締切スケジューラー

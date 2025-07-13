@@ -76,9 +76,13 @@ class HabitNotifier extends StateNotifier<AsyncValue<List<Habit>>> {
     
     final result = await getAllHabitsUseCase(userId);
     
-    state = result.fold(
-      (error) => AsyncValue.error(error, StackTrace.current),
-      (habits) => AsyncValue.data(habits),
+    result.fold(
+      (error) {
+        state = AsyncValue.error(error, StackTrace.current);
+      },
+      (habits) {
+        state = AsyncValue.data(habits);
+      },
     );
   }
 

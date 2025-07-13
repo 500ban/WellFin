@@ -58,9 +58,12 @@ class FirestoreGoalRepository implements GoalRepository {
   Future<List<Goal>> getAllGoals() async {
     try {
       final querySnapshot = await _goalsCollection.get();
-      return querySnapshot.docs
+      
+      final goals = querySnapshot.docs
           .map((doc) => GoalModel.fromFirestore(doc).toDomain())
           .toList();
+      
+      return goals;
     } catch (e) {
       throw Exception('目標の取得に失敗しました: $e');
     }

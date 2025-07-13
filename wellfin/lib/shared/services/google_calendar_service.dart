@@ -10,6 +10,11 @@ class GoogleCalendarService {
   static calendar.CalendarApi? _calendarApi;
   static Completer<calendar.CalendarApi?>? _initializationCompleter;
 
+  // 認証エラー状態管理
+  static bool _isAuthenticationError = false;
+  static String? _lastAuthError;
+  static DateTime? _lastAuthErrorTime;
+
   /// Google Sign-inのアクセストークンを使ってCalendar APIクライアントを初期化
   static Future<calendar.CalendarApi?> _initializeCalendarApi() async {
     // 同時初期化を防ぐ
@@ -81,8 +86,24 @@ class GoogleCalendarService {
     String calendarId = 'primary',
   }) async {
     try {
+      // 認証エラー状態をリセット
+      _isAuthenticationError = false;
+      _lastAuthError = null;
+      
+      // トークンの有効性をチェック
+      final isTokenValid = await GoogleCalendarService.isTokenValid();
+      if (!isTokenValid) {
+        _logger.w('Google Calendar token is invalid, skipping event fetch');
+        _setAuthenticationError('Google Calendar token is invalid');
+        return [];
+      }
+
       final api = await _initializeCalendarApi();
-      if (api == null) return [];
+      if (api == null) {
+        _logger.w('Google Calendar API not available');
+        _setAuthenticationError('Google Calendar API not available');
+        return [];
+      }
 
       // タイムゾーンを考慮した時間範囲の設定
       final response = await api.events.list(
@@ -94,9 +115,11 @@ class GoogleCalendarService {
         timeZone: 'Asia/Tokyo', // 日本時間での取得を明示
       );
 
+      _logger.i('Successfully fetched ${response.items?.length ?? 0} calendar events');
       return response.items ?? [];
     } catch (e) {
       _logger.e('Failed to get calendar events: $e');
+      _setAuthenticationError('Failed to get calendar events: $e');
       return [];
     }
   }
@@ -207,29 +230,81 @@ class GoogleCalendarService {
 
       // 簡単なAPIコールでトークンの有効性をテスト
       await api.calendarList.list();
+      
+      // 成功した場合は認証エラー状態をクリア
+      _isAuthenticationError = false;
+      _lastAuthError = null;
+      
       return true;
     } catch (e) {
       _logger.e('Token validation failed: $e');
+      _setAuthenticationError('Token validation failed: $e');
       return false;
     }
   }
 
   /// 強制的にトークンを更新
-  static Future<void> refreshToken() async {
+  static Future<bool> refreshToken() async {
     // 同時実行を防ぐ
     if (_initializationCompleter != null) {
       _logger.w('Cannot refresh token while initialization is in progress');
-      return;
+      return false;
     }
 
     try {
       final googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
-      await googleSignIn.signIn();
-      _calendarApi = null; // 次回アクセス時に再初期化
-      _logger.i('Google Calendar token refreshed');
+      final account = await googleSignIn.signIn();
+      
+      if (account != null) {
+        _calendarApi = null; // 次回アクセス時に再初期化
+        
+        // 認証エラー状態をクリア
+        _isAuthenticationError = false;
+        _lastAuthError = null;
+        _lastAuthErrorTime = null;
+        
+        _logger.i('Google Calendar token refreshed successfully');
+        return true;
+      } else {
+        _logger.w('User cancelled Google sign-in');
+        return false;
+      }
     } catch (e) {
       _logger.e('Failed to refresh token: $e');
+      _setAuthenticationError('Failed to refresh token: $e');
+      return false;
     }
+  }
+
+  /// 認証エラー状態を設定
+  static void _setAuthenticationError(String error) {
+    _isAuthenticationError = true;
+    _lastAuthError = error;
+    _lastAuthErrorTime = DateTime.now();
+  }
+
+  /// 認証エラー状態を取得
+  static bool get hasAuthenticationError => _isAuthenticationError;
+
+  /// 最後の認証エラーメッセージを取得
+  static String? get lastAuthError => _lastAuthError;
+
+  /// 最後の認証エラー時刻を取得
+  static DateTime? get lastAuthErrorTime => _lastAuthErrorTime;
+
+  /// 認証エラー状態をクリア
+  static void clearAuthenticationError() {
+    _isAuthenticationError = false;
+    _lastAuthError = null;
+    _lastAuthErrorTime = null;
+  }
+
+  /// 認証エラーが特定の時間以内に発生したかチェック
+  static bool isRecentAuthError({Duration threshold = const Duration(minutes: 5)}) {
+    if (!_isAuthenticationError || _lastAuthErrorTime == null) return false;
+    
+    final now = DateTime.now();
+    return now.difference(_lastAuthErrorTime!) < threshold;
   }
 } 

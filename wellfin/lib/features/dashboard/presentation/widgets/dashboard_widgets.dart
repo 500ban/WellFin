@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../tasks/presentation/providers/task_provider.dart';
 import '../../../tasks/domain/entities/task.dart';
 import '../../../tasks/presentation/widgets/add_task_dialog.dart';
+import '../../../tasks/presentation/widgets/task_filter_bar.dart';
 import '../../../habits/presentation/providers/habit_provider.dart';
 import '../../../habits/domain/entities/habit.dart';
 import '../../../habits/presentation/widgets/add_habit_dialog.dart';
@@ -434,7 +435,9 @@ class DashboardTasksCard extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const TaskListPage(),
+                      builder: (context) => const TaskListPage(
+                        initialFilter: TaskFilter.today,
+                      ),
                     ),
                   );
                 },
